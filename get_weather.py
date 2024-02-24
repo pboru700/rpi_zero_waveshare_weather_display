@@ -5,6 +5,9 @@ from datetime import date
 import folium
 from folium.plugins import HeatMap
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 geographic_locations = {
     "lodz": {
