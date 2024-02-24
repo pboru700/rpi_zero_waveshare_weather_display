@@ -7,7 +7,10 @@ from folium.plugins import HeatMap
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path)
+
+token = os.environ.get("AQICN_TOKEN")
 
 geographic_locations = {
     "lodz": {
@@ -18,14 +21,15 @@ geographic_locations = {
 stations = {
     "lodz_czernika": "8121"
 }
-token = os.getenv(AQICN_TOKEN)
 today = date.today()
 
 def load_aqicn_weather_conditions(station_id, token):
     base_url = "https://api.waqi.info"
     trail_url = "/feed/@{}/?token={}".format(station_id, token)
     full_url = base_url + trail_url
-    return pd.read_json(full_url)
+    # return pd.read_json(full_url)
+    response = requests.get(full_url).json()
+    return(response)
     # my_data = pd.read_json(base_url + trail_url) # Join parts of URL
     # print('columns->', my_data.columns) #2 cols ‘status’ and ‘data’
 
@@ -45,4 +49,4 @@ def load_openmeteo_weather_conditions(geo_location, city, date):
 
 if __name__ == "__main__":
     print("---------------------")
-    load_aqicn_weather_conditions(stations["lodz_czernika"], token)
+    print(load_aqicn_weather_conditions(stations["lodz_czernika"], token))
