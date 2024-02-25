@@ -1,11 +1,27 @@
+import os
+import sys
 import requests
 import pandas as pd
 import json
 from datetime import date
 import folium
 from folium.plugins import HeatMap
-import os
 from dotenv import load_dotenv
+picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pic')
+libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
+print(libdir, picdir)
+if os.path.exists(libdir):
+    sys.path.append(libdir)
+import logging
+from waveshare_epd import epd2in13_V4
+import time
+from PIL import Image,ImageDraw,ImageFont
+import traceback
+
+logging.basicConfig(level=logging.DEBUG)
+
+font15 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 15)
+font24 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 24)
 
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -21,17 +37,20 @@ geographic_locations = {
 stations = {
     "lodz_czernika": "8121"
 }
-today = date.today()
 
-def load_aqicn_weather_conditions(station_id, token):
+today = date.today().strftime("%Y-%m-%d")
+
+def load_aqicn_weather_conditions(station_id, token, date):
     base_url = "https://api.waqi.info"
     trail_url = "/feed/@{}/?token={}".format(station_id, token)
     full_url = base_url + trail_url
-    # return pd.read_json(full_url)
     response = requests.get(full_url).json()
-    return(response)
-    # my_data = pd.read_json(base_url + trail_url) # Join parts of URL
-    # print('columns->', my_data.columns) #2 cols ‘status’ and ‘data’
+    pm10 = response["data"]["iaqi"]["pm10"]["v"]
+    pm25_forecast_days = response["data"]["forecast"]["daily"]["pm25"]
+    pm25_forecast_today_all = [ x for x in pm25_forecast_days if x["day"] == date ]
+    pm25_forecast_today_avg = pm25_forecast_today_all[0]["avg"]
+    json_object = json.dumps(response, indent = 2)
+    return(pm25_forecast_today_avg, pm10)
 
 def load_openmeteo_weather_conditions(geo_location, city, date):
     url = "https://api.open-meteo.com/v1/forecast"
@@ -47,6 +66,22 @@ def load_openmeteo_weather_conditions(geo_location, city, date):
     current_weather = weather_df['current_weather']
     return current_weather
 
+def draw(pm25, pm10):
+    logging.info("Initializing")
+    epd = epd2in13_V4.EPD()
+    epd.init()
+    epd.Clear(0xFF)
+
+    logging.info("Drawing on the image")
+    image = Image.new('1', (epd.height, epd.width), 255)
+    draw = ImageDraw.Draw(image)
+
+    draw.line([(0,59),(250,59)], fill = 0,width = 4)
+    draw.line([(124,0),(124,122)], fill = 0,width = 4)
+    draw.text((10, 10), u'PM2.5: ' + pm25, font = font24, fill = 0)
+    draw.text((10, 69), u'PM10: ' + pm10, font = font24, fill = 0)
+
+    epd.displayPartBaseImage(epd.getbuffer(image))
+
 if __name__ == "__main__":
-    print("---------------------")
-    print(load_aqicn_weather_conditions(stations["lodz_czernika"], token))
+    print(load_aqicn_weather_conditions(stations["lodz_czernika"], token, today))
