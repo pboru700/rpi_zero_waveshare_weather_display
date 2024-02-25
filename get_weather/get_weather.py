@@ -4,8 +4,6 @@ import requests
 import pandas as pd
 import json
 from datetime import date
-import folium
-from folium.plugins import HeatMap
 from dotenv import load_dotenv
 picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'pic')
 libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
@@ -45,6 +43,7 @@ def load_aqicn_weather_conditions(station_id, tok, date):
     trail_url = "/feed/@{}/?token={}".format(station_id, tok)
     full_url = base_url + trail_url
     response = requests.get(full_url).json()
+    print(response)
     pm10 = response["data"]["iaqi"]["pm10"]["v"]
     pm25_forecast_days = response["data"]["forecast"]["daily"]["pm25"]
     pm25_forecast_today_all = [ x for x in pm25_forecast_days if x["day"] == date ]
