@@ -43,7 +43,6 @@ def load_aqicn_weather_conditions(station_id, tok, date):
     trail_url = "/feed/@{}/?token={}".format(station_id, tok)
     full_url = base_url + trail_url
     response = requests.get(full_url).json()
-    print(response)
     pm10 = response["data"]["iaqi"]["pm10"]["v"]
     pm25_forecast_days = response["data"]["forecast"]["daily"]["pm25"]
     pm25_forecast_today_all = [ x for x in pm25_forecast_days if x["day"] == date ]
@@ -83,4 +82,5 @@ def draw(pm25, pm10):
     epd.displayPartBaseImage(epd.getbuffer(image))
 
 if __name__ == "__main__":
-    print(load_aqicn_weather_conditions(stations["lodz_czernika"], token, today))
+    pm25, pm10 = load_aqicn_weather_conditions(stations["lodz_czernika"], token, today)
+    draw(str(pm25), str(pm10))
