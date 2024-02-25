@@ -7,8 +7,8 @@ from datetime import date
 import folium
 from folium.plugins import HeatMap
 from dotenv import load_dotenv
-picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pic')
-libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
+picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'pic')
+libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
 print(libdir, picdir)
 if os.path.exists(libdir):
     sys.path.append(libdir)
@@ -40,9 +40,9 @@ stations = {
 
 today = date.today().strftime("%Y-%m-%d")
 
-def load_aqicn_weather_conditions(station_id, token, date):
+def load_aqicn_weather_conditions(station_id, tok, date):
     base_url = "https://api.waqi.info"
-    trail_url = "/feed/@{}/?token={}".format(station_id, token)
+    trail_url = "/feed/@{}/?token={}".format(station_id, tok)
     full_url = base_url + trail_url
     response = requests.get(full_url).json()
     pm10 = response["data"]["iaqi"]["pm10"]["v"]
