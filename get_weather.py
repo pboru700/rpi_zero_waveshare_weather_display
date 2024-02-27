@@ -91,4 +91,4 @@ def air_quality_emote(quality_level, safe_norm):
 
 if __name__ == "__main__":
     pm25, pm10 = load_aqicn_weather_conditions(stations["lodz_czernika"], token, today)
-    draw(str(pm25), str(pm10))
+    draw(pm25, pm10)
