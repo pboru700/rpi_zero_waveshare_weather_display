@@ -5,16 +5,15 @@ import pandas as pd
 import json
 from datetime import date
 from dotenv import load_dotenv
-picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'pic')
-libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
+picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pic')
+libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
 print(libdir, picdir)
 if os.path.exists(libdir):
     sys.path.append(libdir)
 import logging
-from waveshare_epd import epd2in13_V4
+# from waveshare_epd import epd2in13_V4
 import time
 from PIL import Image,ImageDraw,ImageFont
-import traceback
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -64,22 +63,31 @@ def load_openmeteo_weather_conditions(geo_location, city, date):
     current_weather = weather_df['current_weather']
     return current_weather
 
-def draw(pm25, pm10):
-    logging.info("Initializing")
-    epd = epd2in13_V4.EPD()
-    epd.init()
-    epd.Clear(0xFF)
+def air_quality_emote(quality_level, safe_norm):
+    if quality_level <= safe_norm:
+        image = Image.open(os.path.join(picdir, 'emote_smile.png'))
+    elif safe_norm < quality_level <= 2 * safe_norm:
+        image = Image.open(os.path.join(picdir, 'emote_meh.png'))
+    else:
+        image = Image.open(os.path.join(picdir, 'emote_bad_air.png'))
+    return image
 
-    logging.info("Drawing on the image")
-    image = Image.new('1', (epd.height, epd.width), 255)
-    draw = ImageDraw.Draw(image)
+# def draw(pm25, pm10):
+#     logging.info("Initializing")
+#     epd = epd2in13_V4.EPD()
+#     epd.init()
+#     epd.Clear(0xFF)
 
-    draw.line([(0,59),(250,59)], fill = 0,width = 4)
-    draw.line([(124,0),(124,122)], fill = 0,width = 4)
-    draw.text((10, 10), u'PM2.5: ' + pm25, font = font24, fill = 0)
-    draw.text((10, 69), u'PM10: ' + pm10, font = font24, fill = 0)
+#     logging.info("Drawing on the image")
+#     image = Image.new('1', (epd.height, epd.width), 255)
+#     draw = ImageDraw.Draw(image)
 
-    epd.displayPartBaseImage(epd.getbuffer(image))
+#     draw.line([(0,59),(250,59)], fill = 0,width = 4)
+#     draw.line([(124,0),(124,122)], fill = 0,width = 4)
+#     draw.text((10, 10), u'PM2.5: ' + pm25, font = font24, fill = 0)
+#     draw.text((10, 69), u'PM10: ' + pm10, font = font24, fill = 0)
+
+#     epd.displayPartBaseImage(epd.getbuffer(image))
 
 if __name__ == "__main__":
     pm25, pm10 = load_aqicn_weather_conditions(stations["lodz_czernika"], token, today)
