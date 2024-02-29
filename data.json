@@ -1,0 +1,21 @@
+{
+  "geographic_locations": {
+    "lodz": {
+      "latitude": "51.759445",
+      "longitude": "19.457216"
+    }
+  },
+  "stations": {
+    "lodz_czernika": "8121"
+  },
+  "air_quality_norms": {
+    "pm25": {
+      "good": "35",
+      "medium": "55"
+    },
+    "pm10": {
+      "good": "55",
+      "medium": "90"
+    }
+  }
+}

@@ -11,7 +11,7 @@ dotenvdir = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(libdir):
     sys.path.append(libdir)
 import logging
-from waveshare_epd import epd2in13_V4
+# from waveshare_epd import epd2in13_V4
 from PIL import Image,ImageDraw,ImageFont
 
 logging.basicConfig(level=logging.DEBUG)
@@ -23,25 +23,12 @@ load_dotenv(dotenvdir)
 
 token = os.environ.get("AQICN_TOKEN")
 
-geographic_locations = {
-    "lodz": {
-        "latitude": "51.759445",
-        "longitude": "19.457216"
-    }
-}
-stations = {
-    "lodz_czernika": "8121"
-}
-air_quality_norms = {
-    "pm25": {
-        "good": 35,
-        "medium": 55
-    },
-    "pm10": {
-        "good": 55,
-        "medium": 90
-    }
-}
+f = open('data.json')
+data = json.load(f)
+geographic_locations = data["geographic_locations"]
+stations = data["stations"]
+air_quality_norms = data["air_quality_norms"]
+
 today = date.today().strftime("%Y-%m-%d")
 
 def load_aqicn_weather_conditions(station_id, tok, date):
@@ -71,43 +58,43 @@ def load_openmeteo_weather_conditions(geo_location, city, date):
     return current_weather
 
 def air_quality_emote(type, quality_level, norms):
-    if quality_level <= norms[type]["good"]:
+    if int(quality_level) <= int(norms[type]["good"]):
         emote = Image.open(os.path.join(picdir, 'emote_smile.png'))
-    elif norms[type]["good"] < quality_level <= norms[type]["medium"]:
+    elif int(norms[type]["good"]) < int(quality_level) <= int(norms[type]["medium"]):
         emote = Image.open(os.path.join(picdir, 'emote_meh.png'))
     else:
         emote = Image.open(os.path.join(picdir, 'emote_bad_air.png'))
     return emote
 
-def draw(pm25, pm10, norms):
-    logging.info("Initializing")
-    epd = epd2in13_V4.EPD()
-    epd.init()
-    epd.Clear(0xFF)
+# def draw(pm25, pm10, norms):
+#     logging.info("Initializing")
+#     epd = epd2in13_V4.EPD()
+#     epd.init()
+#     epd.Clear(0xFF)
 
-    logging.info("Drawing on the image")
-    image = Image.new('1', (epd.height, epd.width), 255)
-    draw = ImageDraw.Draw(image)
+#     logging.info("Drawing on the image")
+#     image = Image.new('1', (epd.height, epd.width), 255)
+    # draw = ImageDraw.Draw(image)
 
-    draw.line([(0,59),(250,59)], fill = 0,width = 4)
-    draw.line([(124,0),(124,122)], fill = 0,width = 4)
+    # draw.line([(0,59),(250,59)], fill = 0,width = 4)
+    # draw.line([(124,0),(124,122)], fill = 0,width = 4)
 
-    draw.text(
-        (8, 8), u'PM2.5: ' + pm25 + u'/' + norms["pm25"]["good"],
-        font = font24, fill = 0
-    )
-    pm25_emote = air_quality_emote("pm25", pm25, norms)
-    image.paste(pm25_emote, (8, 34))
+    # draw.text(
+    #     (8, 8), u'PM2.5: ' + pm25 + u'/' + norms["pm25"]["good"],
+    #     font = font24, fill = 0
+    # )
+    # pm25_emote = air_quality_emote("pm25", pm25, norms)
+    # image.paste(pm25_emote, (8, 34))
 
-    draw.text(
-        (8, 67), u'PM10: ' + pm10 + u'/' + norms["pm10"]["good"],
-        font = font24, fill = 0
-    )
-    pm10_emote = air_quality_emote("pm10", pm10, norms)
-    image.paste(pm10_emote, (8,93))
+    # draw.text(
+    #     (8, 67), u'PM10: ' + pm10 + u'/' + norms["pm10"]["good"],
+    #     font = font24, fill = 0
+    # )
+    # pm10_emote = air_quality_emote("pm10", pm10, norms)
+    # image.paste(pm10_emote, (8,93))
 
-    epd.displayPartBaseImage(epd.getbuffer(image))
+    # epd.displayPartBaseImage(epd.getbuffer(image))
 
 if __name__ == "__main__":
     pm25, pm10 = load_aqicn_weather_conditions(stations["lodz_czernika"], token, today)
-    draw(pm25, pm10, air_quality_norms)
+    # draw(pm25, pm10, air_quality_norms)
