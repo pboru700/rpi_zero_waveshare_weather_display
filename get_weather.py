@@ -30,7 +30,8 @@ GEO_LOCATIONS = DATA["geographic_locations"]
 STATIONS = DATA["stations"]
 AIR_QUALITY_NORMS = DATA["air_quality_norms"]
 
-TODAY = date.today().strftime("%Y-%m-%d")
+TODAY = date.today().strftime("%d-%m-%Y")
+TODAY_REVERSE = date.today().strftime("%Y-%m-%d")
 
 FONT_SIZE = 24
 
@@ -87,19 +88,22 @@ def draw(pm25, pm10, norms):
     image = Image.new('1', (epd.height, epd.width), 255)
     draw = ImageDraw.Draw(image)
 
+    calendar = Image.open(os.path.join(picdir, 'calendar.bmp'))
+    cloud = Image.open(os.path.join(picdir, 'cloud.bmp'))
+
     draw.line([(0, 59), (250, 59)], fill=0, width=4)
     draw.line([(124, 0), (124, 122)], fill=0, width=4)
 
     draw.text(
-        (8, 6), f'PM2.5: ',
+        (8, 4), f'PM2.5: ',
         font=ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), FONT_SIZE), fill=0
     )
     draw.text(
-        (24, 32), f'{pm25}/{norms["pm25"]["good"]}',
+        (24, 30), f'{pm25}/{norms["pm25"]["good"]}',
         font=ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), FONT_SIZE), fill=0
     )
     pm25_emote = air_quality_emote(pm25, norms["pm25"])
-    image.paste(pm25_emote, (86, 10))
+    image.paste(pm25_emote, (86, 8))
 
     draw.text(
         (8, 67), f'PM10: ',
@@ -112,8 +116,15 @@ def draw(pm25, pm10, norms):
     pm10_emote = air_quality_emote(pm10, norms["pm10"])
     image.paste(pm10_emote, (86, 71))
 
-    epd.displayPartBaseImage(epd.getbuffer(image))
+    image.paste(cloud, (180, 8))
 
+    draw.text(
+        (128, 93), f'{TODAY}',
+        font=ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), FONT_SIZE), fill=0
+    )
+    image.paste(calendar, (180, 67))
+
+    epd.displayPartBaseImage(epd.getbuffer(image))
     # logging.info("Clear...")
     # epd.init()
     # epd.Clear(0xFF)
@@ -123,6 +134,6 @@ def draw(pm25, pm10, norms):
 
 
 if __name__ == "__main__":
-    pm25, pm10 = load_aqicn_weather_conditions(STATIONS["lodz_czernika"], TOKEN, TODAY)
+    pm25, pm10 = load_aqicn_weather_conditions(STATIONS["lodz_czernika"], TOKEN, TODAY_REVERSE)
     if pm25 is not None and pm10 is not None:
         draw(pm25, pm10, AIR_QUALITY_NORMS)
