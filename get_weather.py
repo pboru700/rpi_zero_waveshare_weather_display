@@ -89,7 +89,9 @@ def draw(pm25, pm10, norms):
     draw = ImageDraw.Draw(image)
 
     calendar = Image.open(os.path.join(picdir, 'calendar.bmp'))
-    cloud = Image.open(os.path.join(picdir, 'cloud.bmp'))
+    sun = Image.open(os.path.join(picdir, 'sun.bmp'))
+    cloud_01 = Image.open(os.path.join(picdir, 'clouds_advanced_01.bmp'))
+    cloud_02 = Image.open(os.path.join(picdir, 'clouds_advanced_02.bmp'))
 
     draw.line([(0, 59), (250, 59)], fill=0, width=4)
     draw.line([(124, 0), (124, 122)], fill=0, width=4)
@@ -112,8 +114,10 @@ def draw(pm25, pm10, norms):
     pm10_emote = air_quality_emote(pm10, norms["pm10"])
     image.paste(pm10_emote, (86, 71))
 
-    # Draw Weather conditions icon, upper right
-    image.paste(cloud, (180, 8))
+    # Draw Weather conditions icons, upper right
+    image.paste(sun, (134, 16))
+    image.paste(cloud_01, (190, 8))
+    image.paste(cloud_02, (174, 32))
 
     # Draw date and calendar, lower right
     draw_text(128, 93, TODAY)
