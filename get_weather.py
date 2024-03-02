@@ -124,6 +124,10 @@ def draw(pm25, pm10, norms):
     epd.sleep()
 
 if __name__ == "__main__":
-    pm25, pm10 = load_aqicn_weather_conditions(STATIONS["lodz_czernika"], TOKEN, TODAY_REVERSE)
+    pm25, pm10 = load_aqicn_weather_conditions(
+        STATIONS["lodz_czernika"],
+        TOKEN,
+        TODAY_REVERSE
+    )
     if pm25 is not None and pm10 is not None:
         draw(pm25, pm10, AIR_QUALITY_NORMS)
