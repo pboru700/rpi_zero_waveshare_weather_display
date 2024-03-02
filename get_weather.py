@@ -88,7 +88,7 @@ def draw(pm25, pm10, norms):
     image = Image.new('1', (epd.height, epd.width), 255)
     draw = ImageDraw.Draw(image)
 
-    calendar = Image.open(os.path.join(picdir, 'calendar.bmp'))
+    calendar = Image.open(os.path.join(picdir, 'calendar_big.bmp'))
     sun = Image.open(os.path.join(picdir, 'sun.bmp'))
     cloud_01 = Image.open(os.path.join(picdir, 'clouds_advanced_01.bmp'))
     cloud_02 = Image.open(os.path.join(picdir, 'clouds_advanced_02.bmp'))
