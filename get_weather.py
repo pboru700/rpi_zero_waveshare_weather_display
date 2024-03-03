@@ -21,29 +21,39 @@ if os.path.exists(libdir):
 from waveshare_epd import epd2in13_V4
 
 # Load environment variables
-load_dotenv(dotenvdir)
+try:
+    load_dotenv(dotenvdir)
+except Exception as e:
+    logging.error(f"Failed to load : {e}")
 
 # Constants
-TOKEN = os.environ.get("AQICN_TOKEN")
-FONT_SIZE = 24
-DATA_FILE = 'data.json'
-
 try:
-    # Load data
+    TOKEN = os.environ.get("AQICN_TOKEN")
+    FONT_SIZE = 24
+    DATA_FILE = 'data.json'
+except Exception as e:
+    logging.error(f"Failed to set constants: {e}")
+
+# Load data
+try:
     with open(DATA_FILE) as f:
         DATA = json.load(f)
-
-    GEO_LOCATIONS = DATA["geographic_locations"]
-    STATIONS = DATA["stations"]
-    AIR_QUALITY_NORMS = DATA["air_quality_norms"]
-
-    # Date
-    TODAY = date.today().strftime("%d-%m-%Y")
-    TODAY_REVERSE = date.today().strftime("%Y-%m-%d")
 except Exception as e:
     logging.error(f"Failed to load data from {DATA_FILE}: {e}")
     sys.exit(1)
+try:
+    GEO_LOCATIONS = DATA["geographic_locations"]
+    STATIONS = DATA["stations"]
+    AIR_QUALITY_NORMS = DATA["air_quality_norms"]
+except Exception as e:
+    logging.error(f"Failed to set constants: {e}")
 
+# Date
+try:
+    TODAY = date.today().strftime("%d-%m-%Y")
+    TODAY_REVERSE = date.today().strftime("%Y-%m-%d")
+except Exception as e:
+    logging.error(f"Failed to set date: {e}")
 
 def load_api_data(url):
     try:
@@ -57,7 +67,6 @@ def load_api_data(url):
         logging.error(f"Failed to decode JSON response from {url}: {e}")
         return None
 
-
 def load_aqicn_weather_conditions(station_id, token, date):
     try:
         base_url = f"https://api.waqi.info/feed/{station_id}/?token={token}"
@@ -70,7 +79,6 @@ def load_aqicn_weather_conditions(station_id, token, date):
     except Exception as e:
         logging.error(f"Failed to load AQICN weather conditions: {e}")
         return None, None
-
 
 def load_openmeteo_weather_conditions(geo_location, city, date):
     try:
@@ -88,7 +96,6 @@ def load_openmeteo_weather_conditions(geo_location, city, date):
         logging.error(f"Failed to load OpenMeteo weather conditions: {e}")
         return None
 
-
 def air_quality_emote(quality_level, norms):
     try:
         if quality_level <= int(norms["good"]):
@@ -100,7 +107,6 @@ def air_quality_emote(quality_level, norms):
     except Exception as e:
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
-
 
 def draw(pm25, pm10, norms):
     try:
@@ -170,7 +176,6 @@ def draw(pm25, pm10, norms):
         epd.sleep()
     except Exception as e:
         logging.error(f"Failed to draw: {e}")
-
 
 if __name__ == "__main__":
     try:
