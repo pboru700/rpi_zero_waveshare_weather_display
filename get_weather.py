@@ -88,10 +88,14 @@ def draw(pm25, pm10, norms):
     image = Image.new('1', (epd.height, epd.width), 255)
     draw = ImageDraw.Draw(image)
 
-    calendar = Image.open(os.path.join(picdir, 'calendar_big.bmp'))
+    calendar = Image.open(os.path.join(picdir, 'calendar_big_02.bmp'))
     sun = Image.open(os.path.join(picdir, 'sun.bmp'))
     cloud_01 = Image.open(os.path.join(picdir, 'clouds_advanced_01.bmp'))
     cloud_02 = Image.open(os.path.join(picdir, 'clouds_advanced_02.bmp'))
+    upper_left_corner = Image.open(os.path.join(picdir, 'corner.bmp'))
+    upper_right_corner = upper_left_corner.rotate(270)
+    lower_left_corner = upper_left_corner.rotate(90)
+    lower_right_corner = upper_left_corner.rotate(180)
 
     draw.line([(0, 59), (250, 59)], fill=0, width=4)
     draw.line([(124, 0), (124, 122)], fill=0, width=4)
@@ -120,8 +124,14 @@ def draw(pm25, pm10, norms):
     image.paste(cloud_02, (174, 32))
 
     # Draw date and calendar, lower right
+    image.paste(calendar, (166, 64))
     draw_text(128, 93, TODAY)
-    image.paste(calendar, (180, 67))
+
+    # Draw corners
+    image.paste(upper_left_corner, (0, 0))
+    image.paste(upper_right_corner, (247, 0))
+    image.paste(lower_left_corner, (0, 119))
+    image.paste(lower_right_corner, (247, 119))
 
     epd.displayPartBaseImage(epd.getbuffer(image))
     logging.info("Goto Sleep...")
