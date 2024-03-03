@@ -121,7 +121,7 @@ def draw(pm25, pm10, norms):
         upper_left_corner = Image.open(os.path.join(picdir, 'corner.bmp'))
         upper_right_corner = upper_left_corner.rotate(270)
         lower_left_corner = upper_left_corner.rotate(90)
-        lower_right_corner = upper_left_corner.rotate(180))
+        lower_right_corner = upper_left_corner.rotate(180)
 
         def draw_text(x, y, text):
             draw.text(
