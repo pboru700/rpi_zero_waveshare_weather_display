@@ -48,14 +48,12 @@ def load_api_data(url):
         return None
 
 def load_aqicn_weather_conditions(station_id, token, date):
-    base_url = f"https://api.waqi.info/feed/@{station_id}/?token={token}"
+    base_url = f"https://api.waqi.info/feed/{station_id}/?token={token}"
     data = load_api_data(base_url)
     if data:
         pm10 = data.get("data", {}).get("iaqi", {}).get("pm10", {}).get("v")
-        pm25_forecast_days = data.get("data", {}).get("forecast", {}).get("daily", {}).get("pm25", [])
-        pm25_forecast_today_all = [x for x in pm25_forecast_days if x["day"] == date]
-        pm25_forecast_today_avg = pm25_forecast_today_all[0]["avg"] if pm25_forecast_today_all else None
-        return pm25_forecast_today_avg, pm10
+        pm25 = data.get("data", {}).get("iaqi", {}).get("pm25", {}).get("v")
+        return pm25, pm10
     return None, None
 
 def load_openmeteo_weather_conditions(geo_location, city, date):
