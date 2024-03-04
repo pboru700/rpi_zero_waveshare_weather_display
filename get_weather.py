@@ -209,13 +209,13 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, temp = None, pressure = None):
 if __name__ == "__main__":
     try:
         # pm25, pm10 = load_aqicn_weather_conditions(
-        #     STATIONS["lodz_czernika"],
+        #     STATIONS["aqicn"]["lodz_czernika"],
         #     AQICN_TOKEN
         # )
         pm25, pm10, pm25_norm, pm10_norm = load_airly_weather_conditions(
             GEO_LOCATIONS,
             'lodz',
-            STATIONS["lodz_bartoka"],
+            STATIONS["airly"]["lodz_bartoka"],
             AIRLY_TOKEN
         )
         if pm25 is not None and pm10 is not None:
