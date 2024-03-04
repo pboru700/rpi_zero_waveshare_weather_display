@@ -207,18 +207,17 @@ def draw(pm25, pm10, pm25_norm, pm10_norm):
 
 if __name__ == "__main__":
     try:
-        pm25, pm10 = load_aqicn_weather_conditions(
-            STATIONS["lodz_czernika"],
-            AQICN_TOKEN
-        )
-        pm25, pm10, pm25_norm, pm10_norm =
-        load_airly_weather_conditions(
+        # pm25, pm10 = load_aqicn_weather_conditions(
+        #     STATIONS["lodz_czernika"],
+        #     AQICN_TOKEN
+        # )
+        pm25, pm10, pm25_norm, pm10_norm = load_airly_weather_conditions(
             GEO_LOCATIONS,
             'lodz',
             AIRLY_TOKEN
         )
-        print(pm25, pm10, pm25_norm, pm10_norm)
         if pm25 is not None and pm10 is not None:
-            draw(pm25, pm10, AIR_QUALITY_NORMS["pm25"]["good"], AIR_QUALITY_NORMS["pm10"]["good"])
+            draw(pm25, pm10, pm25_norm, pm10_norm)
+            # draw(pm25, pm10, AIR_QUALITY_NORMS["pm25"]["good"], AIR_QUALITY_NORMS["pm10"]["good"])
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
