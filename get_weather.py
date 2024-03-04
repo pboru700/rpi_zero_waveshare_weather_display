@@ -124,11 +124,11 @@ def load_openmeteo_weather_conditions(geo_location, city, date):
         logging.error(f"Failed to load OpenMeteo weather conditions: {e}")
         return None
 
-def air_quality_emote(quality_level, norms):
+def air_quality_emote(quality_level, norm_good, norm_medium):
     try:
-        if quality_level <= int(norms["good"]):
+        if quality_level <= norm_good:
             return Image.open(os.path.join(picdir, 'emote_smile.bmp'))
-        elif int(norms["good"]) < quality_level <= int(norms["medium"]):
+        elif norm_good < quality_level <= norm_medium:
             return Image.open(os.path.join(picdir, 'emote_meh.bmp'))
         else:
             return Image.open(os.path.join(picdir, 'emote_bad_air.bmp'))
@@ -169,15 +169,15 @@ def draw(pm25, pm10, pm25_norm, pm10_norm):
 
         # Draw PM2.5 norm, upper left
         draw_text(8, 4, 'PM2.5: ')
-        draw_text(24, 30, f'{pm25}/{pm25_norm}')
-        pm25_emote = air_quality_emote(pm25, norms["pm25"])
+        draw_text(8, 30, f'{pm25}/{pm25_norm}')
+        pm25_emote = air_quality_emote(pm25, pm25_norm, 2 * pm25_norm)
         if pm25_emote:
             image.paste(pm25_emote, (86, 8))
 
         # Draw PM10 norm, lower left
         draw_text(8, 67, 'PM10: ')
-        draw_text(24, 93, f'{pm10}/{pm10_norm}')
-        pm10_emote = air_quality_emote(pm10, norms["pm10"])
+        draw_text(8, 93, f'{pm10}/{pm10_norm}')
+        pm10_emote = air_quality_emote(pm10, pm10_norm, 2 * pm10_norm)
         if pm10_emote:
             image.paste(pm10_emote, (86, 71))
 
