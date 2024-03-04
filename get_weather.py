@@ -28,7 +28,8 @@ except Exception as e:
 
 # Constants
 try:
-    TOKEN = os.environ.get("AQICN_TOKEN")
+    AQICN_TOKEN = os.environ.get("AQICN_TOKEN")
+    AIRLY_TOKEN = os.environ.get("AIRLY_TOKEN")
     FONT_SIZE = 24
     DATA_FILE = 'data.json'
 except Exception as e:
@@ -41,6 +42,7 @@ try:
 except Exception as e:
     logging.error(f"Failed to load data from {DATA_FILE}: {e}")
     sys.exit(1)
+
 try:
     GEO_LOCATIONS = DATA["geographic_locations"]
     STATIONS = DATA["stations"]
@@ -51,13 +53,15 @@ except Exception as e:
 # Date
 try:
     TODAY = date.today().strftime("%d-%m-%Y")
-    TODAY_REVERSE = date.today().strftime("%Y-%m-%d")
 except Exception as e:
     logging.error(f"Failed to set date: {e}")
 
-def load_api_data(url):
+def load_api_data(url, headers = None):
     try:
-        response = requests.get(url)
+        if headers == None:
+            response = requests.get(url)
+        else:
+            response = requests.get(url, headers=headers)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -67,13 +71,37 @@ def load_api_data(url):
         logging.error(f"Failed to decode JSON response from {url}: {e}")
         return None
 
-def load_aqicn_weather_conditions(station_id, token, date):
+def load_airly_weather_conditions(geo_location, city, token):
+    try:
+        base_url = "https://airapi.airly.eu/v2/measurements/"
+        url_data_location = f"point?lat={geo_location[city]['latitude']}&lng={geo_location[city]['longitude']}"
+        url = base_url + url_data_location
+        headers = {
+            'Accept': 'application/json',
+            'apikey': token
+        }
+        data = load_api_data(url, headers)
+        if data:
+            values = data.get("current", {}).get("values", {})
+            norms = data.get("current", {}).get("standards", {})
+            pm25 = [ v["value"] for v in values if v["name"] == "PM25" ][0]
+            pm10 = [ v["value"] for v in values if v["name"] == "PM10" ][0]
+            pm25_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM25" ][0]
+            pm10_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM10" ][0]
+            return pm25, pm10, pm25_norm, pm10_norm
+        return None, None, None, None
+    except Exception as e:
+        logging.error(f"Failed to load AIRLY weather conditions: {e}")
+        return None, None, None, None
+
+def load_aqicn_weather_conditions(station_id, token):
     try:
         base_url = f"https://api.waqi.info/feed/{station_id}/?token={token}"
         data = load_api_data(base_url)
         if data:
-            pm10 = data.get("data", {}).get("iaqi", {}).get("pm10", {}).get("v")
-            pm25 = data.get("data", {}).get("iaqi", {}).get("pm25", {}).get("v")
+            iaqi = data.get("data", {}).get("iaqi", {})
+            pm10 = iaqi.get("pm10", {}).get("v")
+            pm25 = iaqi.get("pm25", {}).get("v")
             return pm25, pm10
         return None, None
     except Exception as e:
@@ -108,7 +136,7 @@ def air_quality_emote(quality_level, norms):
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
 
-def draw(pm25, pm10, norms):
+def draw(pm25, pm10, pm25_norm, pm10_norm):
     try:
         logging.info("Initializing")
         epd = epd2in13_V4.EPD()
@@ -141,14 +169,14 @@ def draw(pm25, pm10, norms):
 
         # Draw PM2.5 norm, upper left
         draw_text(8, 4, 'PM2.5: ')
-        draw_text(24, 30, f'{pm25}/{norms["pm25"]["good"]}')
+        draw_text(24, 30, f'{pm25}/{pm25_norm}')
         pm25_emote = air_quality_emote(pm25, norms["pm25"])
         if pm25_emote:
             image.paste(pm25_emote, (86, 8))
 
         # Draw PM10 norm, lower left
         draw_text(8, 67, 'PM10: ')
-        draw_text(24, 93, f'{pm10}/{norms["pm10"]["good"]}')
+        draw_text(24, 93, f'{pm10}/{pm10_norm}')
         pm10_emote = air_quality_emote(pm10, norms["pm10"])
         if pm10_emote:
             image.paste(pm10_emote, (86, 71))
@@ -181,10 +209,16 @@ if __name__ == "__main__":
     try:
         pm25, pm10 = load_aqicn_weather_conditions(
             STATIONS["lodz_czernika"],
-            TOKEN,
-            TODAY_REVERSE
+            AQICN_TOKEN
         )
+        pm25, pm10, pm25_norm, pm10_norm =
+        load_airly_weather_conditions(
+            GEO_LOCATIONS,
+            'lodz',
+            AIRLY_TOKEN
+        )
+        print(pm25, pm10, pm25_norm, pm10_norm)
         if pm25 is not None and pm10 is not None:
-            draw(pm25, pm10, AIR_QUALITY_NORMS)
+            draw(pm25, pm10, AIR_QUALITY_NORMS["pm25"]["good"], AIR_QUALITY_NORMS["pm10"]["good"])
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
