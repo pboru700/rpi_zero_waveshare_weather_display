@@ -160,6 +160,8 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, tem
         upper_right_corner = upper_left_corner.rotate(270)
         lower_left_corner = upper_left_corner.rotate(90)
         lower_right_corner = upper_left_corner.rotate(180)
+        termometer = Image.open(os.path.join(picdir, 'termometer.bmp'))
+        water_droplet = Image.open(os.path.join(picdir, 'water_droplet.bmp'))
 
         def draw_text(x, y, text, size = FONT_SIZE):
             draw.text(
@@ -192,9 +194,11 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, tem
 
         # Draw temperature, himidity and pressure
         if temperature:
-            draw_text(133, 30, f"T: {temperature}°C")
+            draw_text(146, 30, f"{temperature}°C")
+            image.paste(termometer, (130, 30))
         if humidity:
-            draw_text(133, 67, f"W: {humidity}%")
+            draw_text(146, 67, f"{humidity}%")
+            image.paste(water_droplet, (130, 67))
         if pressure:
             draw_text(126, 93, f"{pressure}hPa")
         else:
