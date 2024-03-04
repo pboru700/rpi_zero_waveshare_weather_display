@@ -6,7 +6,12 @@
     }
   },
   "stations": {
-    "lodz_czernika": "A379789"
+    "aqicn": {
+      "lodz_czernika": "A379789"
+    },
+    "airly": {
+      "lodz_bartoka": "8173"
+    }
   },
   "air_quality_norms": {
     "pm25": {
