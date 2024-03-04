@@ -71,11 +71,12 @@ def load_api_data(url, headers = None):
         logging.error(f"Failed to decode JSON response from {url}: {e}")
         return None
 
-def load_airly_weather_conditions(geo_location, city, token):
+def load_airly_weather_conditions(geo_location, city, location_id, token):
     try:
         base_url = "https://airapi.airly.eu/v2/measurements/"
-        url_data_location = f"point?lat={geo_location[city]['latitude']}&lng={geo_location[city]['longitude']}"
-        url = base_url + url_data_location
+        url_location = f"point?lat={geo_location[city]['latitude']}&lng={geo_location[city]['longitude']}"
+        url_location_id = f"&locationId={location_id}"
+        url = base_url + url_location + url_location_id
         headers = {
             'Accept': 'application/json',
             'apikey': token
@@ -136,7 +137,7 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
 
-def draw(pm25, pm10, pm25_norm, pm10_norm):
+def draw(pm25, pm10, pm25_norm, pm10_norm, temp = None, pressure = None):
     try:
         logging.info("Initializing")
         epd = epd2in13_V4.EPD()
@@ -214,6 +215,7 @@ if __name__ == "__main__":
         pm25, pm10, pm25_norm, pm10_norm = load_airly_weather_conditions(
             GEO_LOCATIONS,
             'lodz',
+            STATIONS["lodz_bartoka"],
             AIRLY_TOKEN
         )
         if pm25 is not None and pm10 is not None:
