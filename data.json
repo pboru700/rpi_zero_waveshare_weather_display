@@ -16,10 +16,10 @@
   "air_quality_norms": {
     "pm25": {
       "good": "25",
-      "medium": "55"
+      "medium": "50"
     },
     "pm10": {
-      "good": "50",
+      "good": "45",
       "medium": "90"
     }
   }
