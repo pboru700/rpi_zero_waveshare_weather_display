@@ -163,6 +163,8 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, tem
         termometer = Image.open(os.path.join(picdir, 'termometer.bmp'))
         water_droplet = Image.open(os.path.join(picdir, 'water_droplet.bmp'))
         pressure_icon = Image.open(os.path.join(picdir, 'pressure.bmp'))
+        pm25_icon = Image.open(os.path.join(picdir, 'pm25_icon.bmp'))
+        pm10_icon = Image.open(os.path.join(picdir, 'pm10_icon.bmp'))
 
         def draw_text(x, y, text, size = FONT_SIZE):
             draw.text(
@@ -175,18 +177,18 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, tem
         draw.line([(124, 0), (124, 122)], fill=0, width=4)
 
         # Draw PM2.5 norm, upper left
-        draw_text(8, 4, 'PM2.5: ')
-        draw_text(8, 30, f'{pm25}/{pm25_norm}')
+        image.paste(pm25_icon, (28, 1))
         pm25_emote = air_quality_emote(pm25, pm25_norm, 2 * pm25_norm)
         if pm25_emote:
-            image.paste(pm25_emote, (86, 8))
+            image.paste(pm25_emote, (66, 1))
+        draw_text(8, 30, f'{pm25}/{pm25_norm}')
 
         # Draw PM10 norm, lower left
-        draw_text(8, 67, 'PM10: ')
-        draw_text(8, 93, f'{pm10}/{pm10_norm}')
+        image.paste(pm10_icon, (28, 63))
         pm10_emote = air_quality_emote(pm10, pm10_norm, 2 * pm10_norm)
         if pm10_emote:
-            image.paste(pm10_emote, (86, 71))
+            image.paste(pm10_emote, (66, 63))
+        draw_text(8, 93, f'{pm10}/{pm10_norm}')
 
         # Draw Weather conditions icons, upper right
         image.paste(sun, (134, 6))
@@ -195,14 +197,14 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, tem
 
         # Draw temperature, himidity and pressure
         if temperature:
-            draw_text(148, 30, f"{temperature}°C")
-            image.paste(termometer, (130, 26))
+            draw_text(156, 28, f"{temperature}°C")
+            image.paste(termometer, (132, 26))
         if humidity:
-            draw_text(148, 67, f"{humidity}%")
-            image.paste(water_droplet, (130, 67))
+            draw_text(156, 65, f"{humidity}%")
+            image.paste(water_droplet, (132, 67))
         if pressure:
             draw_text(146, 93, f"{pressure}hPa", 20)
-            image.paste(pressure_icon, (130, 97))
+            image.paste(pressure_icon, (128, 96))
         else:
             draw_text(129, 30, TODAY)
 
