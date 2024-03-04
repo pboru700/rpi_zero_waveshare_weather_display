@@ -87,13 +87,16 @@ def load_airly_weather_conditions(geo_location, city, location_id, token):
             norms = data.get("current", {}).get("standards", {})
             pm25 = [ v["value"] for v in values if v["name"] == "PM25" ][0]
             pm10 = [ v["value"] for v in values if v["name"] == "PM10" ][0]
+            pressure = [ v["value"] for v in values if v["name"] == "PRESSURE" ][0]
+            humidity = [ v["value"] for v in values if v["name"] == "HUMIDITY" ][0]
+            temperature = [ v["value"] for v in values if v["name"] == "TEMPERATURE" ][0]
             pm25_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM25" ][0]
             pm10_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM10" ][0]
-            return pm25, pm10, pm25_norm, pm10_norm
-        return None, None, None, None
+            return pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature
+        return None, None, None, None, None, None, None
     except Exception as e:
         logging.error(f"Failed to load AIRLY weather conditions: {e}")
-        return None, None, None, None
+        return None, None, None, None, None, None, None
 
 def load_aqicn_weather_conditions(station_id, token):
     try:
@@ -137,7 +140,7 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
 
-def draw(pm25, pm10, pm25_norm, pm10_norm, temp = None, pressure = None):
+def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, temperature = None):
     try:
         logging.info("Initializing")
         epd = epd2in13_V4.EPD()
@@ -158,10 +161,10 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, temp = None, pressure = None):
         lower_left_corner = upper_left_corner.rotate(90)
         lower_right_corner = upper_left_corner.rotate(180)
 
-        def draw_text(x, y, text):
+        def draw_text(x, y, text, size = FONT_SIZE):
             draw.text(
                 (x, y), text,
-                font=ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), FONT_SIZE), fill=0
+                font=ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), size), fill=0
             )
 
         # Draw cross
@@ -183,13 +186,19 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, temp = None, pressure = None):
             image.paste(pm10_emote, (86, 71))
 
         # Draw Weather conditions icons, upper right
-        image.paste(sun, (134, 16))
-        image.paste(cloud_01, (190, 8))
-        image.paste(cloud_02, (174, 32))
+        image.paste(sun, (134, 6))
+        image.paste(cloud_01, (170, 8))
+        image.paste(cloud_02, (210, 10))
 
-        # Draw date and calendar, lower right
-        image.paste(calendar, (166, 64))
-        draw_text(128, 93, TODAY)
+        # Draw temperature, himidity and pressure
+        if temperature:
+            draw_text(133, 30, f"T: {temperature}°C")
+        if humidity:
+            draw_text(133, 67, f"W: {humidity}%")
+        if pressure:
+            draw_text(126, 93, f"{pressure}hPa")
+        else:
+            draw_text(129, 30, TODAY)
 
         # Draw corners
         image.paste(upper_left_corner, (0, 0))
@@ -199,12 +208,12 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, temp = None, pressure = None):
 
         # Draw image
         epd.displayPartBaseImage(epd.getbuffer(image))
-
+    except Exception as e:
+        logging.error(f"Failed to draw: {e}")
+    finally:
         # Cut power to screen
         logging.info("Goto Sleep...")
         epd.sleep()
-    except Exception as e:
-        logging.error(f"Failed to draw: {e}")
 
 if __name__ == "__main__":
     try:
@@ -212,14 +221,14 @@ if __name__ == "__main__":
         #     STATIONS["aqicn"]["lodz_czernika"],
         #     AQICN_TOKEN
         # )
-        pm25, pm10, pm25_norm, pm10_norm = load_airly_weather_conditions(
+        pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature = load_airly_weather_conditions(
             GEO_LOCATIONS,
             'lodz',
             STATIONS["airly"]["lodz_bartoka"],
             AIRLY_TOKEN
         )
-        if pm25 is not None and pm10 is not None:
-            draw(pm25, pm10, pm25_norm, pm10_norm)
+        if pm25 is not None and pm10 is not None and pm25_norm is not None and pm10_norm is not None:
+            draw(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature)
             # draw(pm25, pm10, AIR_QUALITY_NORMS["pm25"]["good"], AIR_QUALITY_NORMS["pm10"]["good"])
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
