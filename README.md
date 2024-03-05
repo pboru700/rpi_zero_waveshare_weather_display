@@ -15,7 +15,7 @@ Geographic locations and station IDs defined in a JSON file (default: data.json)
 ## Installation
 
 Clone this repository or download the script.
-Install required Python packages using pip install -r requirements.txt.
+Install required Python packages using pip3 install -r requirements.txt.
 Usage
 
 ```
@@ -43,4 +43,4 @@ Display manual can be found here: https://www.waveshare.com/wiki/2.13inch_Touch_
 
 ## Author
 
-This script was created by [Piotr Boruszczak].
+This script was created by Piotr Boruszczak.
