@@ -96,6 +96,18 @@ def load_weather_conditions(provider, city, location_id, token):
         logging.error(f"Failed to load {provider} weather conditions: {e}")
         return None
 
+def air_quality_emote(quality_level, norm_good, norm_medium):
+    try:
+       if quality_level <= norm_good:
+           return Image.open(os.path.join(picdir, 'emote_smile.bmp'))
+       elif norm_good < quality_level <= norm_medium:
+           return Image.open(os.path.join(picdir, 'emote_meh.bmp'))
+       else:
+           return Image.open(os.path.join(picdir, 'emote_bad_air.bmp'))
+    except Exception as e:
+        logging.error(f"Failed to determine air quality emote: {e}")
+        return None
+
 def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate=False):
     try:
         epd = epd2in13_V4.EPD()
@@ -105,18 +117,65 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
         image = Image.new('1', (epd.height, epd.width), 255)
         draw = ImageDraw.Draw(image)
 
+        # Load pictures
+        sun = Image.open(os.path.join(picdir, 'sun.bmp'))
+        upper_left_corner = Image.open(os.path.join(picdir, 'corner.bmp'))
+        upper_right_corner = upper_left_corner.rotate(270)
+        lower_left_corner = upper_left_corner.rotate(90)
+        lower_right_corner = upper_left_corner.rotate(180)
+        termometer = Image.open(os.path.join(picdir, 'termometer.bmp'))
+        water_droplet = Image.open(os.path.join(picdir, 'water_droplet.bmp'))
+        pressure_icon = Image.open(os.path.join(picdir, 'pressure.bmp'))
+        pm25_icon = Image.open(os.path.join(picdir, 'pm25_icon.bmp'))
+        pm10_icon = Image.open(os.path.join(picdir, 'pm10_icon.bmp'))
         calendar = Image.open(os.path.join(picdir, "calendar_big_02.bmp"))
         sun = Image.open(os.path.join(picdir, "sun.bmp"))
         cloud_01 = Image.open(os.path.join(picdir, "clouds_advanced_01.bmp"))
         cloud_02 = Image.open(os.path.join(picdir, "clouds_advanced_02.bmp"))
-
-        # Load other images
 
         def draw_text(x, y, text, size=FONT_SIZE):
             draw.text((x, y), text,font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size), fill=0)
 
         draw.line([(0, 59), (250, 59)], fill=0, width=4)
         draw.line([(124, 0), (124, 122)], fill=0, width=4)
+
+        # Draw PM2.5 norm, upper left
+        image.paste(pm25_icon, (28, 1))
+        pm25_emote = air_quality_emote(pm25, pm25_norm, 2 * pm25_norm)
+        if pm25_emote:
+            image.paste(pm25_emote, (66, 1))
+            draw_text(8, 30, f'{pm25}/{pm25_norm}')
+
+        # Draw PM10 norm, lower left
+        image.paste(pm10_icon, (28, 63))
+        pm10_emote = air_quality_emote(pm10, pm10_norm, 2 * pm10_norm)
+        if pm10_emote:
+            image.paste(pm10_emote, (66, 63))
+            draw_text(8, 93, f'{pm10}/{pm10_norm}')
+
+        # Draw Weather conditions icons, upper right
+        image.paste(sun, (134, 6))
+        image.paste(cloud_01, (170, 8))
+        image.paste(cloud_02, (210, 10))
+
+        # Draw temperature, himidity and pressure
+        if temperature:
+            draw_text(156, 28, f"{temperature}°C")
+            image.paste(termometer, (132, 26))
+        if humidity:
+            draw_text(156, 65, f"{humidity}%")
+            image.paste(water_droplet, (132, 67))
+        if pressure:
+            draw_text(146, 93, f"{pressure}hPa", 20)
+            image.paste(pressure_icon, (128, 96))
+        else:
+            draw_text(129, 30, TODAY)
+
+        # Draw corners
+        image.paste(upper_left_corner, (0, 0))
+        image.paste(upper_right_corner, (247, 0))
+        image.paste(lower_left_corner, (0, 119))
+        image.paste(lower_right_corner, (247, 119))
 
         if rotate:
             image = image.rotate(180)
@@ -126,7 +185,7 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
     except Exception as e:
         logging.error(f"Failed to draw: {e}")
     finally:
-        # Cut of power to screen
+        logging.info("Powering off the screen")
         epd.sleep()
 
 if __name__ == "__main__":
