@@ -111,7 +111,7 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
 
-def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate=False, date):
+def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate=False):
     try:
         logging.info("Initializing")
         epd = epd2in13_V4.EPD()
@@ -152,7 +152,7 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
             draw_text(draw, 146, 93, f"{pressure}hPa", 20)
             draw_image(image, 128, 96, "pressure.bmp")
         else:
-            draw_text(draw, 129, 30, date)
+            draw_text(draw, 129, 30, date.today().strftime("%d-%m-%Y"))
 
         # Draw corners
         draw_image(image, 0, 0, "corner.bmp")
@@ -179,17 +179,12 @@ if __name__ == "__main__":
         logging.error(f"Failed to set constants: {e}")
 
     try:
-        today = date.today().strftime("%d-%m-%Y")
-    except Exception as e:
-        logging.error(f"Failed to set date: {e}")
-
-    try:
         datafile, rotate, city, location, source = input_arguments()
         with open(datafile) as f:
             data = json.load(f)
         geo_locs = data["geographic_locations"]
         stations = data["stations"]
-        air_norms = data["air_norms"]
+        air_norms = data["air_quality_norms"]
         weather_data = get_weather_conditions(
             source, city, geo_locs, stations["airly"][location], airly_token
         )
@@ -205,7 +200,7 @@ if __name__ == "__main__":
             pm10_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM10" ][0]
             draw_conditions(
                 pm25, pm10, pm25_norm, pm10_norm,
-                pressure, humidity, temperature, rotate, today
+                pressure, humidity, temperature, rotate
             )
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
