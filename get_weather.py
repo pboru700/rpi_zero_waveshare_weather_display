@@ -2,6 +2,7 @@ import os
 import sys
 import requests
 import pandas as pd
+import json
 from datetime import date
 from dotenv import load_dotenv
 import logging
@@ -91,6 +92,7 @@ def load_weather_conditions(provider, city, location_id, token):
         url = base_url + urls.get(provider)
         headers = {"Accept": "application/json", "apikey": token} if provider == "airly" else None
         data = load_api_data(url, headers)
+        print(data)
         return data
     except Exception as e:
         logging.error(f"Failed to load {provider} weather conditions: {e}")
@@ -98,22 +100,24 @@ def load_weather_conditions(provider, city, location_id, token):
 
 def air_quality_emote(quality_level, norm_good, norm_medium):
     try:
-       if quality_level <= norm_good:
-           return Image.open(os.path.join(picdir, 'emote_smile.bmp'))
-       elif norm_good < quality_level <= norm_medium:
-           return Image.open(os.path.join(picdir, 'emote_meh.bmp'))
-       else:
-           return Image.open(os.path.join(picdir, 'emote_bad_air.bmp'))
+        if quality_level <= norm_good:
+            return Image.open(os.path.join(picdir, 'emote_smile.bmp'))
+        elif norm_good < quality_level <= norm_medium:
+            return Image.open(os.path.join(picdir, 'emote_meh.bmp'))
+        else:
+            return Image.open(os.path.join(picdir, 'emote_bad_air.bmp'))
     except Exception as e:
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
 
 def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate=False):
     try:
+        logging.info("Initializing")
         epd = epd2in13_V4.EPD()
         epd.init()
         epd.Clear(0xFF)
 
+        logging.info("Drawing on the image")
         image = Image.new('1', (epd.height, epd.width), 255)
         draw = ImageDraw.Draw(image)
 
@@ -144,14 +148,14 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
         pm25_emote = air_quality_emote(pm25, pm25_norm, 2 * pm25_norm)
         if pm25_emote:
             image.paste(pm25_emote, (66, 1))
-            draw_text(8, 30, f'{pm25}/{pm25_norm}')
+        draw_text(8, 30, f'{pm25}/{pm25_norm}')
 
         # Draw PM10 norm, lower left
         image.paste(pm10_icon, (28, 63))
         pm10_emote = air_quality_emote(pm10, pm10_norm, 2 * pm10_norm)
         if pm10_emote:
             image.paste(pm10_emote, (66, 63))
-            draw_text(8, 93, f'{pm10}/{pm10_norm}')
+        draw_text(8, 93, f'{pm10}/{pm10_norm}')
 
         # Draw Weather conditions icons, upper right
         image.paste(sun, (134, 6))
