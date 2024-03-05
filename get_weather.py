@@ -235,19 +235,21 @@ if __name__ == "__main__":
         datafile, rotate, city, location = input_arguments()
     except Exception as e:
         logging.error(f"Failed to parse input parameters: {e}")
-        # Load data
+
     try:
         with open(datafile) as f:
             DATA = json.load(f)
     except Exception as e:
         logging.error(f"Failed to load data from {datafile}: {e}")
         sys.exit(1)
+
     try:
         GEO_LOCATIONS = DATA["geographic_locations"]
         STATIONS = DATA["stations"]
         AIR_QUALITY_NORMS = DATA["air_quality_norms"]
     except Exception as e:
         logging.error(f"Failed to set constants: {e}")
+
     try:
         # pm25, pm10 = load_aqicn_weather_conditions(
         #     STATIONS["aqicn"]["lodz_czernika"],
