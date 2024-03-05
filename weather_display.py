@@ -48,7 +48,7 @@ def input_arguments():
         help="Path to file with json formatted data."
     )
     parser.add_argument(
-        "--rotate", action="store_true", type=str,
+        "--rotate", action="store_true",
         help="Rotates image by 180 degrees when provided"
     )
     parser.add_argument(
@@ -78,7 +78,7 @@ def load_api_data(url, headers=None):
         logging.error(f"Failed to decode JSON response from {url}: {e}")
         return None
 
-def load_weather_conditions(provider, city, location_id, token):
+def load_weather_conditions(provider, city, geo_location, location_id, token):
     base_urls = {
         "airly": "https://airapi.airly.eu/v2/measurements/",
         "aqicn": "https://api.waqi.info/feed/"
@@ -92,7 +92,6 @@ def load_weather_conditions(provider, city, location_id, token):
         url = base_url + urls.get(provider)
         headers = {"Accept": "application/json", "apikey": token} if provider == "airly" else None
         data = load_api_data(url, headers)
-        print(data)
         return data
     except Exception as e:
         logging.error(f"Failed to load {provider} weather conditions: {e}")
@@ -196,19 +195,21 @@ if __name__ == "__main__":
     try:
         datafile, rotate, city, location, source = input_arguments()
         with open(datafile) as f:
-            DATA = json.load(f)
-        GEO_LOCATIONS = DATA["geographic_locations"]
-        STATIONS = DATA["stations"]
-        AIR_QUALITY_NORMS = DATA["air_quality_norms"]
-        weather_data = load_weather_conditions(source, city, STATIONS["airly"][location], AIRLY_TOKEN)
+            data = json.load(f)
+        geo_locations = data["geographic_locations"]
+        stations = data["stations"]
+        air_quality_norms = data["air_quality_norms"]
+        weather_data = load_weather_conditions(source, city, geo_locations, stations["airly"][location], AIRLY_TOKEN)
         if weather_data:
-            pm25 = weather_data.get("current", {}).get("values", {}).get("pm25")
-            pm10 = weather_data.get("current", {}).get("values", {}).get("pm10")
-            pm25_norm = AIR_QUALITY_NORMS["pm25"]["good"]
-            pm10_norm = AIR_QUALITY_NORMS["pm10"]["good"]
-            pressure = weather_data.get("current", {}).get("values", {}).get("PRESSURE")
-            humidity = weather_data.get("current", {}).get("values", {}).get("HUMIDITY")
-            temperature = weather_data.get("current", {}).get("values", {}).get("TEMPERATURE")
+            values = weather_data["current"]["values"]
+            norms = weather_data["current"]["standards"]
+            pm25 = [ v["value"] for v in values if v["name"] == "PM25" ][0]
+            pm10 = [ v["value"] for v in values if v["name"] == "PM10" ][0]
+            pressure = [ v["value"] for v in values if v["name"] == "PRESSURE" ][0]
+            humidity = [ v["value"] for v in values if v["name"] == "HUMIDITY" ][0]
+            temperature = [ v["value"] for v in values if v["name"] == "TEMPERATURE" ][0]
+            pm25_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM25" ][0]
+            pm10_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM10" ][0]
             draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate)
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
