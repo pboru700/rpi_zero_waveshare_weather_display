@@ -34,6 +34,12 @@ python weather_display.py --rotate --city warsaw --location warsaw_station
 
 This command will display weather conditions for Warsaw, Poland, using the station with ID warsaw_station and rotate the output image.
 
+For usage run:
+
+```
+python weather_display.py --help
+```
+
 ## Notes
 
 Make sure to set up the required environment variables for API tokens.
