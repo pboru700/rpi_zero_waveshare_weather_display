@@ -53,10 +53,10 @@ def input_arguments():
         '--rotate', action='store_true', help='Rotates image by 180 degrees when provided'
     )
     parser.add_argument(
-        '--city', default='lodz', help='City to check weather conditions'
+        '--city', default='lodz', help='City to check weather conditions, city should be available in datafile under geographic_locations'
     )
     parser.add_argument(
-        '--location', default='lodz_bartoka', help='Location ID for chosen station'
+        '--location', default='lodz_bartoka', help='Location ID for chosen station, location should be available in datafile under stations/<api_provider>'
     )
     args = parser.parse_args()
     return args.datafile, args.rotate, args.city, args.location
