@@ -78,10 +78,11 @@ def load_api_data(url, headers=None):
         logging.error(f"Failed to decode JSON response from {url}: {e}")
         return None
 
-def load_weather_conditions(provider, city, geo_location, location_id, token):
+def get_weather_conditions(provider, city, geo_location, location_id, token):
     base_urls = {
         "airly": "https://airapi.airly.eu/v2/measurements/",
-        "aqicn": "https://api.waqi.info/feed/"
+        "aqicn": "https://api.waqi.info/feed/",
+        "openmeteo": "https://api.open-meteo.com/v1/forecast"
     }
     urls = {
         "airly": f"point?lat={geo_location[city]['latitude']}&lng={geo_location[city]['longitude']}&locationId={location_id}",
@@ -199,7 +200,7 @@ if __name__ == "__main__":
         geo_locations = data["geographic_locations"]
         stations = data["stations"]
         air_quality_norms = data["air_quality_norms"]
-        weather_data = load_weather_conditions(source, city, geo_locations, stations["airly"][location], AIRLY_TOKEN)
+        weather_data = get_weather_conditions(source, city, geo_locations, stations["airly"][location], AIRLY_TOKEN)
         if weather_data:
             values = weather_data["current"]["values"]
             norms = weather_data["current"]["standards"]
