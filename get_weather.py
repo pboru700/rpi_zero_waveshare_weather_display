@@ -7,6 +7,7 @@ from datetime import date
 from dotenv import load_dotenv
 import logging
 from PIL import Image, ImageDraw, ImageFont
+import argparse
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -31,22 +32,6 @@ try:
     AQICN_TOKEN = os.environ.get("AQICN_TOKEN")
     AIRLY_TOKEN = os.environ.get("AIRLY_TOKEN")
     FONT_SIZE = 24
-    DATA_FILE = 'data.json'
-except Exception as e:
-    logging.error(f"Failed to set constants: {e}")
-
-# Load data
-try:
-    with open(DATA_FILE) as f:
-        DATA = json.load(f)
-except Exception as e:
-    logging.error(f"Failed to load data from {DATA_FILE}: {e}")
-    sys.exit(1)
-
-try:
-    GEO_LOCATIONS = DATA["geographic_locations"]
-    STATIONS = DATA["stations"]
-    AIR_QUALITY_NORMS = DATA["air_quality_norms"]
 except Exception as e:
     logging.error(f"Failed to set constants: {e}")
 
@@ -55,6 +40,26 @@ try:
     TODAY = date.today().strftime("%d-%m-%Y")
 except Exception as e:
     logging.error(f"Failed to set date: {e}")
+
+def input_arguments():
+    parser = argparse.ArgumentParser(description='Get weather conditions.')
+    parser.add_argument(
+        "--datafile",
+        help="Path to file with json formatted data.",
+        default='data.json',
+        type=str
+    )
+    parser.add_argument(
+        '--rotate', action='store_true', help='Rotates image by 180 degrees when provided'
+    )
+    parser.add_argument(
+        '--city', default='lodz', help='City to check weather conditions, city should be available in datafile under geographic_locations'
+    )
+    parser.add_argument(
+        '--location', default='lodz_bartoka', help='Location ID for chosen station, location should be available in datafile under stations/<api_provider>'
+    )
+    args = parser.parse_args()
+    return args.datafile, args.rotate, args.city, args.location
 
 def load_api_data(url, headers = None):
     try:
@@ -140,7 +145,7 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
 
-def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, temperature = None):
+def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, temperature = None, rotate = False):
     try:
         logging.info("Initializing")
         epd = epd2in13_V4.EPD()
@@ -214,6 +219,8 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, tem
         image.paste(lower_left_corner, (0, 119))
         image.paste(lower_right_corner, (247, 119))
 
+        if rotate:
+            image = image.rotate(180)
         # Draw image
         epd.displayPartBaseImage(epd.getbuffer(image))
     except Exception as e:
@@ -225,18 +232,37 @@ def draw(pm25, pm10, pm25_norm, pm10_norm, pressure = None, humidity = None, tem
 
 if __name__ == "__main__":
     try:
+        datafile, rotate, city, location = input_arguments()
+    except Exception as e:
+        logging.error(f"Failed to parse input parameters: {e}")
+
+    try:
+        with open(datafile) as f:
+            DATA = json.load(f)
+    except Exception as e:
+        logging.error(f"Failed to load data from {datafile}: {e}")
+        sys.exit(1)
+
+    try:
+        GEO_LOCATIONS = DATA["geographic_locations"]
+        STATIONS = DATA["stations"]
+        AIR_QUALITY_NORMS = DATA["air_quality_norms"]
+    except Exception as e:
+        logging.error(f"Failed to set constants: {e}")
+
+    try:
         # pm25, pm10 = load_aqicn_weather_conditions(
         #     STATIONS["aqicn"]["lodz_czernika"],
         #     AQICN_TOKEN
         # )
         pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature = load_airly_weather_conditions(
             GEO_LOCATIONS,
-            'lodz',
-            STATIONS["airly"]["lodz_bartoka"],
+            city,
+            STATIONS["airly"][location],
             AIRLY_TOKEN
         )
         if pm25 is not None and pm10 is not None and pm25_norm is not None and pm10_norm is not None:
-            draw(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature)
+            draw(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate)
             # draw(pm25, pm10, AIR_QUALITY_NORMS["pm25"]["good"], AIR_QUALITY_NORMS["pm10"]["good"])
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
