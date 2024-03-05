@@ -88,16 +88,23 @@ def get_weather_conditions(provider, city, geo_location, location_id, token):
         return None
 
 def draw_text(image_draw, x, y, text, size=FONT_SIZE):
-    image_draw.text(
-        (x, y), text, fill=0,
-        font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size)
-    )
+    try:
+        image_draw.text(
+            (x, y), text, fill=0,
+            font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size)
+        )
+    except Exception as e:
+        logging.error(f"Failed to draw text: {e}")
+
 
 def draw_image(canvas, x, y, filename, rotation=None):
-    this_image = Image.open(os.path.join(picdir, filename))
-    if rotation:
-        this_image.rotate(rotation)
+    try:
+        this_image = Image.open(os.path.join(picdir, filename))
+        if rotation:
+            this_image.rotate(rotation)
         canvas.paste(this_image, (x, y))
+    except Exception as e:
+        logging.error(f"Failed to draw image: {e}")
 
 def air_quality_emote(quality_level, norm_good, norm_medium):
     try:
@@ -133,7 +140,7 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
 
         # Draw PM10 norm, lower left
         draw_image(image, 28, 63, "pm10_icon.bmp")
-        draw_image(image, 28, 1, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
+        draw_image(image, 66, 63, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
         draw_text(draw, 8, 93, f"{pm10}/{pm10_norm}")
 
         # Draw Weather icons, upper right
