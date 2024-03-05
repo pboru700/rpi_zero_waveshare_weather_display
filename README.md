@@ -1,22 +1,16 @@
-# rpi_zero_waveshare_weather
-
-AQICN_TOKEN value can be acquired from https://aqicn.org/data-platform/token/. Put it in .env file:
-
-```
-AQICN_TOKEN="xxxxx"
-```
-
 # Weather Conditions Display with Waveshare 2,13inch e-Paper HAT screen
 
 This Python script fetches weather conditions from specified sources and displays them on a Waveshare 2.13inch Touch e-Paper HAT screen along with additional images. It supports fetching data from Airly, and AQICN APIs.
 
 ## Prerequisites
 
+```
 Python 3.x installed on your system
 Waveshare 2.13inch Touch e-Paper HAT screen
 Environment variables set up for API tokens (AQICN_TOKEN and AIRLY_TOKEN)
 requests, pandas, dotenv, and PIL Python packages installed
 Geographic locations and station IDs defined in a JSON file (default: data.json)
+```
 
 ## Installation
 
