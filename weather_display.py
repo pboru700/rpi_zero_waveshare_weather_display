@@ -21,7 +21,7 @@ if os.path.exists(libdir):
 
 from waveshare_epd import epd2in13_V4
 
-# Load environment variables
+# Load .env variables
 try:
     load_dotenv(dotenvdir)
 except Exception as e:
