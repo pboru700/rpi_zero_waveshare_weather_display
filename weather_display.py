@@ -12,9 +12,9 @@ import argparse
 logging.basicConfig(level=logging.DEBUG)
 
 # Directories
-picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pic')
-libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
-dotenvdir = os.path.join(os.path.dirname(__file__), '.env')
+picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "pic")
+libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "lib")
+dotenvdir = os.path.join(os.path.dirname(__file__), ".env")
 
 if os.path.exists(libdir):
     sys.path.append(libdir)
@@ -28,18 +28,7 @@ except Exception as e:
     logging.error(f"Failed to load : {e}")
 
 # Constants
-try:
-    AQICN_TOKEN = os.environ.get("AQICN_TOKEN")
-    AIRLY_TOKEN = os.environ.get("AIRLY_TOKEN")
-    FONT_SIZE = 24
-except Exception as e:
-    logging.error(f"Failed to set constants: {e}")
-
-# Date
-try:
-    TODAY = date.today().strftime("%d-%m-%Y")
-except Exception as e:
-    logging.error(f"Failed to set date: {e}")
+FONT_SIZE = 24
 
 def input_arguments():
     parser = argparse.ArgumentParser(description="Get weather conditions.")
@@ -98,19 +87,31 @@ def get_weather_conditions(provider, city, geo_location, location_id, token):
         logging.error(f"Failed to load {provider} weather conditions: {e}")
         return None
 
+def draw_text(image_draw, x, y, text, size=FONT_SIZE):
+    image_draw.text(
+        (x, y), text, fill=0,
+        font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size)
+    )
+
+def draw_image(canvas, x, y, filename, rotation=None):
+    this_image = Image.open(os.path.join(picdir, filename))
+    if rotation:
+        this_image.rotate(rotation)
+        canvas.paste(this_image, (x, y))
+
 def air_quality_emote(quality_level, norm_good, norm_medium):
     try:
         if quality_level <= norm_good:
-            return Image.open(os.path.join(picdir, 'emote_smile.bmp'))
+            return "emote_smile.bmp"
         elif norm_good < quality_level <= norm_medium:
-            return Image.open(os.path.join(picdir, 'emote_meh.bmp'))
+            return "emote_meh.bmp"
         else:
-            return Image.open(os.path.join(picdir, 'emote_bad_air.bmp'))
+            return "emote_bad_air.bmp"
     except Exception as e:
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
 
-def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate=False):
+def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate=False, date):
     try:
         logging.info("Initializing")
         epd = epd2in13_V4.EPD()
@@ -118,73 +119,51 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
         epd.Clear(0xFF)
 
         logging.info("Drawing on the image")
-        image = Image.new('1', (epd.height, epd.width), 255)
+        image = Image.new("1", (epd.height, epd.width), 255)
         draw = ImageDraw.Draw(image)
 
-        # Load pictures
-        sun = Image.open(os.path.join(picdir, 'sun.bmp'))
-        upper_left_corner = Image.open(os.path.join(picdir, 'corner.bmp'))
-        upper_right_corner = upper_left_corner.rotate(270)
-        lower_left_corner = upper_left_corner.rotate(90)
-        lower_right_corner = upper_left_corner.rotate(180)
-        termometer = Image.open(os.path.join(picdir, 'termometer.bmp'))
-        water_droplet = Image.open(os.path.join(picdir, 'water_droplet.bmp'))
-        pressure_icon = Image.open(os.path.join(picdir, 'pressure.bmp'))
-        pm25_icon = Image.open(os.path.join(picdir, 'pm25_icon.bmp'))
-        pm10_icon = Image.open(os.path.join(picdir, 'pm10_icon.bmp'))
-        calendar = Image.open(os.path.join(picdir, "calendar_big_02.bmp"))
-        sun = Image.open(os.path.join(picdir, "sun.bmp"))
-        cloud_01 = Image.open(os.path.join(picdir, "clouds_advanced_01.bmp"))
-        cloud_02 = Image.open(os.path.join(picdir, "clouds_advanced_02.bmp"))
-
-        def draw_text(x, y, text, size=FONT_SIZE):
-            draw.text((x, y), text,font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size), fill=0)
-
+        # Draw intersecting lines
         draw.line([(0, 59), (250, 59)], fill=0, width=4)
         draw.line([(124, 0), (124, 122)], fill=0, width=4)
 
         # Draw PM2.5 norm, upper left
-        image.paste(pm25_icon, (28, 1))
-        pm25_emote = air_quality_emote(pm25, pm25_norm, 2 * pm25_norm)
-        if pm25_emote:
-            image.paste(pm25_emote, (66, 1))
-        draw_text(8, 30, f'{pm25}/{pm25_norm}')
+        draw_image(image, 28, 1, "pm25_icon.bmp")
+        draw_image(image, 66, 1, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
+        draw_text(draw, 8, 30, f"{pm25}/{pm25_norm}")
 
         # Draw PM10 norm, lower left
-        image.paste(pm10_icon, (28, 63))
-        pm10_emote = air_quality_emote(pm10, pm10_norm, 2 * pm10_norm)
-        if pm10_emote:
-            image.paste(pm10_emote, (66, 63))
-        draw_text(8, 93, f'{pm10}/{pm10_norm}')
+        draw_image(image, 28, 63, "pm10_icon.bmp")
+        draw_image(image, 28, 1, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
+        draw_text(draw, 8, 93, f"{pm10}/{pm10_norm}")
 
-        # Draw Weather conditions icons, upper right
-        image.paste(sun, (134, 6))
-        image.paste(cloud_01, (170, 8))
-        image.paste(cloud_02, (210, 10))
+        # Draw Weather icons, upper right
+        draw_image(image, 134, 6, "sun.bmp")
+        draw_image(image, 170, 8, "clouds_advanced_01.bmp")
+        draw_image(image, 210, 10, "clouds_advanced_02.bmp")
 
         # Draw temperature, himidity and pressure
         if temperature:
-            draw_text(156, 28, f"{temperature}°C")
-            image.paste(termometer, (132, 26))
+            draw_text(draw, 156, 28, f"{temperature}°C")
+            draw_image(image, 132, 26, "termometer.bmp")
         if humidity:
-            draw_text(156, 65, f"{humidity}%")
-            image.paste(water_droplet, (132, 67))
+            draw_text(draw, 156, 65, f"{humidity}%")
+            draw_image(image, 132, 67, "water_droplet.bmp")
         if pressure:
-            draw_text(146, 93, f"{pressure}hPa", 20)
-            image.paste(pressure_icon, (128, 96))
+            draw_text(draw, 146, 93, f"{pressure}hPa", 20)
+            draw_image(image, 128, 96, "pressure.bmp")
         else:
-            draw_text(129, 30, TODAY)
+            draw_text(draw, 129, 30, date)
 
         # Draw corners
-        image.paste(upper_left_corner, (0, 0))
-        image.paste(upper_right_corner, (247, 0))
-        image.paste(lower_left_corner, (0, 119))
-        image.paste(lower_right_corner, (247, 119))
+        draw_image(image, 0, 0, "corner.bmp")
+        draw_image(image, 247, 0, "corner.bmp", 270)
+        draw_image(image, 0, 119, "corner.bmp", 90)
+        draw_image(image, 247, 119, "corner.bmp", 180)
 
         if rotate:
             image = image.rotate(180)
 
-        # Draw elements
+        # Display image
         epd.displayPartBaseImage(epd.getbuffer(image))
     except Exception as e:
         logging.error(f"Failed to draw: {e}")
@@ -194,13 +173,26 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
 
 if __name__ == "__main__":
     try:
+        aqicn_token = os.environ.get("AQICN_TOKEN")
+        airly_token = os.environ.get("AIRLY_TOKEN")
+    except Exception as e:
+        logging.error(f"Failed to set constants: {e}")
+
+    try:
+        today = date.today().strftime("%d-%m-%Y")
+    except Exception as e:
+        logging.error(f"Failed to set date: {e}")
+
+    try:
         datafile, rotate, city, location, source = input_arguments()
         with open(datafile) as f:
             data = json.load(f)
-        geo_locations = data["geographic_locations"]
+        geo_locs = data["geographic_locations"]
         stations = data["stations"]
-        air_quality_norms = data["air_quality_norms"]
-        weather_data = get_weather_conditions(source, city, geo_locations, stations["airly"][location], AIRLY_TOKEN)
+        air_norms = data["air_norms"]
+        weather_data = get_weather_conditions(
+            source, city, geo_locs, stations["airly"][location], airly_token
+        )
         if weather_data:
             values = weather_data["current"]["values"]
             norms = weather_data["current"]["standards"]
@@ -211,6 +203,9 @@ if __name__ == "__main__":
             temperature = [ v["value"] for v in values if v["name"] == "TEMPERATURE" ][0]
             pm25_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM25" ][0]
             pm10_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM10" ][0]
-            draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate)
+            draw_conditions(
+                pm25, pm10, pm25_norm, pm10_norm,
+                pressure, humidity, temperature, rotate, today
+            )
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
