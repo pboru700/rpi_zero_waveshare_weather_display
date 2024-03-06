@@ -96,7 +96,6 @@ def draw_text(image_draw, x, y, text, size=FONT_SIZE):
     except Exception as e:
         logging.error(f"Failed to draw text: {e}")
 
-
 def draw_image(canvas, x, y, filename, rotation=None):
     try:
         this_image = Image.open(os.path.join(picdir, filename))
@@ -134,14 +133,14 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
         draw.line([(124, 0), (124, 122)], fill=0, width=4)
 
         # Draw PM2.5 norm, upper left
-        draw_image(image, 28, 1, "pm25_icon.bmp")
-        draw_image(image, 66, 1, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
-        draw_text(draw, 8, 30, f"{pm25}/{pm25_norm}")
+        draw_image(image, 28, 4, "pm25_icon.bmp")
+        draw_image(image, 66, 4, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
+        draw_text(draw, 6, 33, f"{pm25}/{pm25_norm}")
 
         # Draw PM10 norm, lower left
-        draw_image(image, 28, 63, "pm10_icon.bmp")
-        draw_image(image, 66, 63, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
-        draw_text(draw, 8, 93, f"{pm10}/{pm10_norm}")
+        draw_image(image, 28, 66, "pm10_icon.bmp")
+        draw_image(image, 66, 66, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
+        draw_text(draw, 6, 96, f"{pm10}/{pm10_norm}")
 
         # Draw Weather icons, upper right
         draw_image(image, 134, 6, "sun.bmp")
@@ -153,11 +152,11 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
             draw_text(draw, 156, 28, f"{temperature}°C")
             draw_image(image, 132, 26, "termometer.bmp")
         if humidity:
-            draw_text(draw, 156, 65, f"{humidity}%")
-            draw_image(image, 132, 67, "water_droplet.bmp")
+            draw_text(draw, 156, 66, f"{humidity}%")
+            draw_image(image, 132, 68, "water_droplet.bmp")
         if pressure:
-            draw_text(draw, 146, 93, f"{pressure}hPa", 20)
-            draw_image(image, 128, 96, "pressure.bmp")
+            draw_text(draw, 146, 96, f"{pressure}hPa", 20)
+            draw_image(image, 128, 99, "pressure.bmp")
         else:
             draw_text(draw, 129, 30, date.today().strftime("%d-%m-%Y"))
 
