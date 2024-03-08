@@ -105,6 +105,11 @@ def draw_image(canvas, x, y, filename, rotation=None):
     except Exception as e:
         logging.error(f"Failed to draw image: {e}")
 
+def fill_empty_space(canvas, x, y):
+    draw_image(canvas, x, y, "sun.bmp")
+    draw_image(canvas, x + 36, y + 2, "clouds_advanced_01.bmp")
+    draw_image(canvas, x + 76, y + 4, "clouds_advanced_02.bmp")
+
 def air_quality_emote(quality_level, norm_good, norm_medium):
     try:
         if quality_level <= norm_good:
@@ -117,7 +122,7 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
 
-def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temperature, rotate=False):
+def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure=None, humidity=None, temperature=None, rotate=False):
     try:
         logging.info("Initializing")
         epd = epd2in13_V4.EPD()
@@ -143,17 +148,19 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure, humidity, temper
         draw_text(draw, 6, 96, f"{pm10}/{pm10_norm}")
 
         # Draw Weather icons, upper right
-        draw_image(image, 134, 6, "sun.bmp")
-        draw_image(image, 170, 8, "clouds_advanced_01.bmp")
-        draw_image(image, 210, 10, "clouds_advanced_02.bmp")
+        fill_empty_space(image, 134, 6)
 
         # Draw temperature, himidity and pressure
         if temperature:
             draw_text(draw, 156, 28, f"{temperature}°C")
             draw_image(image, 132, 26, "termometer.bmp")
+        else:
+            fill_empty_space(image, 134, 26)
         if humidity:
             draw_text(draw, 156, 66, f"{humidity}%")
             draw_image(image, 132, 68, "water_droplet.bmp")
+        else:
+            fill_empty_space(image, 132, 68)
         if pressure:
             draw_text(draw, 146, 96, f"{pressure}hPa", 20)
             draw_image(image, 128, 99, "pressure.bmp")
