@@ -46,13 +46,20 @@ python weather_display.py --help
 
 ## Adding sources
 
-```
 - Add required API token to e.g. `.env`
 - Add source to `--source` argparse argument
 - Add your source to `get_weather_conditions()` function
 - Update path to token under `if __name__ ...` block
 - Add source to `if args.source ...` statement block
 - Add `geographic_locations` and `stations` to `data.json` file
+
+## Adding script execution to cron
+
+For simplification cron schedule `bash_trigger.sh` script can be used.
+In order to start python script during reboot add:
+
+```
+@reboot <bash_trigger_script_path>/bash_trigger.sh <path_to_weather_script>
 ```
 
 ## Notes
@@ -62,7 +69,3 @@ Ensure the specified city and location ID are available in the provided data fil
 Airly API documentation can be found here: https://developer.airly.org/en/docs. Register to grab API TOKEN.
 Module `waveshare_epd` origin can be found here: https://github.com/waveshare/Touch_e-Paper_HAT.
 Display manual can be found here: https://www.waveshare.com/wiki/2.13inch_Touch_e-Paper_HAT_Manual#Download_the_Demo
-
-## Author
-
-This script was created by Piotr Boruszczak.
