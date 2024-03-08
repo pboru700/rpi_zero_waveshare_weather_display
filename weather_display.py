@@ -49,8 +49,8 @@ def input_arguments():
         help="Location ID for chosen station, location should be available in datafile under stations/<api_provider>"
     )
     parser.add_argument(
-        "--source", default="airly", type=str, choices=["airly", "aqicn"],
-        help="Chose source for weather data, available choices are: airly, aqicn"
+        "--source", default="airly", type=str, choices=["airly"],
+        help="Chose source for weather data, available choices are: airly"
     )
     return parser.parse_args()
 
@@ -187,8 +187,10 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure=None, humidity=No
 
 if __name__ == "__main__":
     try:
-        aqicn_token = os.environ.get("AQICN_TOKEN")
-        airly_token = os.environ.get("AIRLY_TOKEN")
+        tokens = {
+            "airly": os.environ.get("AIRLY_TOKEN")
+            # "aqicn": os.environ.get("AQICN_TOKEN")
+        }
     except Exception as e:
         logging.error(f"Failed to set constants: {e}")
 
@@ -200,18 +202,19 @@ if __name__ == "__main__":
         stations = data["stations"]
         air_norms = data["air_quality_norms"]
         weather_data = get_weather_conditions(
-            args.source, args.city, geo_locs, stations["airly"][args.location], airly_token
+            args.source, args.city, geo_locs, stations["airly"][args.location], tokens[args.source]
         )
         if weather_data:
-            values = weather_data["current"]["values"]
-            norms = weather_data["current"]["standards"]
-            pm25 = [ v["value"] for v in values if v["name"] == "PM25" ][0]
-            pm10 = [ v["value"] for v in values if v["name"] == "PM10" ][0]
-            pressure = [ v["value"] for v in values if v["name"] == "PRESSURE" ][0]
-            humidity = [ v["value"] for v in values if v["name"] == "HUMIDITY" ][0]
-            temperature = [ v["value"] for v in values if v["name"] == "TEMPERATURE" ][0]
-            pm25_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM25" ][0]
-            pm10_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM10" ][0]
+            if args.source == "airly":
+                values = weather_data["current"]["values"]
+                norms = weather_data["current"]["standards"]
+                pm25 = [ v["value"] for v in values if v["name"] == "PM25" ][0]
+                pm10 = [ v["value"] for v in values if v["name"] == "PM10" ][0]
+                pressure = [ v["value"] for v in values if v["name"] == "PRESSURE" ][0]
+                humidity = [ v["value"] for v in values if v["name"] == "HUMIDITY" ][0]
+                temperature = [ v["value"] for v in values if v["name"] == "TEMPERATURE" ][0]
+                pm25_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM25" ][0]
+                pm10_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM10" ][0]
             draw_conditions(
                 pm25, pm10, pm25_norm, pm10_norm,
                 pressure, humidity, temperature, args.rotate
