@@ -46,12 +46,14 @@ python weather_display.py --help
 
 ## Adding sources
 
+```
 - Add required API token to e.g. `.env`
 - Add source to `--source` argparse argument
 - Add your source to `get_weather_conditions()` function
 - Update path to token under `if __name__ ...` block
 - Add source to `if args.source ...` statement block
 - Add `geographic_locations` and `stations` to `data.json` file
+```
 
 ## Notes
 
