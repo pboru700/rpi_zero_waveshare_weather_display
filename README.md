@@ -1,8 +1,8 @@
-# Weather Conditions Display with Waveshare 2,13inch e-Paper HAT screen
+# Weather Conditions Display with Waveshare 2,13inch e-Paper HAT screen for Raspberry Pi Zero 2 W
 
 ![](./pic/demo.jpeg)
 
-This Python script fetches weather conditions from specified sources and displays them on a Waveshare 2.13inch Touch e-Paper HAT screen along with additional images. It supports fetching data from Airly, and AQICN APIs.
+This Python script fetches weather conditions from specified sources and displays them on a Waveshare 2.13inch Touch e-Paper HAT screen along with additional images. It supports fetching data from Airly, and AQICN APIs. This have been tested on Raspberry Pi Zero 2 W.
 
 ## Prerequisites
 
