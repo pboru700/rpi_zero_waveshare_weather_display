@@ -52,8 +52,7 @@ def input_arguments():
         "--source", default="airly", type=str, choices=["airly", "aqicn"],
         help="Chose source for weather data, available choices are: airly, aqicn"
     )
-    args = parser.parse_args()
-    return args.datafile, args.rotate, args.city, args.location, args.source
+    return parser.parse_args()
 
 def load_api_data(url, headers=None):
     try:
@@ -69,18 +68,20 @@ def load_api_data(url, headers=None):
 
 def get_weather_conditions(provider, city, geo_location, location_id, token):
     base_urls = {
-        "airly": "https://airapi.airly.eu/v2/measurements/",
-        "aqicn": "https://api.waqi.info/feed/",
-        "openmeteo": "https://api.open-meteo.com/v1/forecast"
+        "airly": "https://airapi.airly.eu/v2/measurements/"
+        # "aqicn": "https://api.waqi.info/feed/"
     }
     urls = {
         "airly": f"point?lat={geo_location[city]['latitude']}&lng={geo_location[city]['longitude']}&locationId={location_id}",
-        "aqicn": f"{location_id}/?token={token}"
+        # "aqicn": f"{location_id}/?token={token}"
+    }
+    use_headers = {
+        "airly": True
     }
     try:
         base_url = base_urls.get(provider)
         url = base_url + urls.get(provider)
-        headers = {"Accept": "application/json", "apikey": token} if provider == "airly" else None
+        headers = {"Accept": "application/json", "apikey": token} if use_headers[provider] else None
         data = load_api_data(url, headers)
         return data
     except Exception as e:
@@ -192,14 +193,14 @@ if __name__ == "__main__":
         logging.error(f"Failed to set constants: {e}")
 
     try:
-        datafile, rotate, city, location, source = input_arguments()
-        with open(datafile) as f:
+        args = input_arguments()
+        with open(args.datafile) as f:
             data = json.load(f)
         geo_locs = data["geographic_locations"]
         stations = data["stations"]
         air_norms = data["air_quality_norms"]
         weather_data = get_weather_conditions(
-            source, city, geo_locs, stations["airly"][location], airly_token
+            args.source, args.city, geo_locs, stations["airly"][args.location], airly_token
         )
         if weather_data:
             values = weather_data["current"]["values"]
@@ -213,7 +214,7 @@ if __name__ == "__main__":
             pm10_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM10" ][0]
             draw_conditions(
                 pm25, pm10, pm25_norm, pm10_norm,
-                pressure, humidity, temperature, rotate
+                pressure, humidity, temperature, args.rotate
             )
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
