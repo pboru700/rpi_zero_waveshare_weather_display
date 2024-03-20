@@ -25,7 +25,7 @@ from waveshare_epd import epd2in13_V4
 try:
     load_dotenv(dotenvdir)
 except Exception as exception:
-    logging.error(f"Failed to load: {exception}")
+    logging.error("Failed to load: %e", exception)
 
 # Constants
 FONT_SIZE = 24
@@ -63,10 +63,10 @@ def load_api_data(url, headers=None):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to fetch data from {url}: {e}")
+        logging.error("Failed to fetch data from %u: %e", url, e)
         return None
     except json.JSONDecodeError as e:
-        logging.error(f"Failed to decode JSON response from {url}: {e}")
+        logging.error("Failed to decode JSON response from %u: %e", url, e)
         return None
 
 def get_weather_conditions(provider, city, geo_location, location_id, token):
@@ -88,7 +88,7 @@ def get_weather_conditions(provider, city, geo_location, location_id, token):
         data = load_api_data(url, headers)
         return data
     except Exception as e:
-        logging.error(f"Failed to load {provider} weather conditions: {e}")
+        logging.error("Failed to load %s weather conditions: %e", provider, e)
         return None
 
 def init_display():
@@ -109,7 +109,7 @@ def draw_text(image_draw, x, y, text, size=FONT_SIZE):
             font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size)
         )
     except Exception as e:
-        logging.error(f"Failed to draw text: {e}")
+        logging.error("Failed to draw text: %e", e)
 
 def draw_image(canvas, x, y, filename, rotation=None):
     try:
@@ -118,7 +118,7 @@ def draw_image(canvas, x, y, filename, rotation=None):
             this_image = this_image.rotate(rotation)
         canvas.paste(this_image, (x, y))
     except Exception as e:
-        logging.error(f"Failed to draw image: {e}")
+        logging.error("Failed to draw image: %e", e)
 
 def fill_empty_space(canvas, x, y):
     draw_image(canvas, x, y, "sun.bmp")
@@ -133,7 +133,7 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
             return "emote_meh.bmp"
         return "emote_bad_air.bmp"
     except Exception as e:
-        logging.error(f"Failed to determine air quality emote: {e}")
+        logging.error("Failed to determine air quality emote: %e", e)
         return None
 
 def draw_intersecting_lines(draw):
@@ -189,7 +189,7 @@ def display_image(epd, image, rotate):
             image = image.rotate(180)
         epd.displayPartBaseImage(epd.getbuffer(image))
     except Exception as e:
-        logging.error(f"Failed to draw: {e}")
+        logging.error("Failed to draw: %e", e)
     finally:
         logging.info("Powering off the screen")
         epd.sleep()
@@ -200,7 +200,7 @@ def get_tokens():
             "airly": os.environ.get("AIRLY_TOKEN")
         }
     except Exception as e:
-        logging.error(f"Failed to set constants: {e}")
+        logging.error("Failed to set constants: %e", e)
         return None
 
 def parse_airly_data(data):
@@ -240,7 +240,7 @@ def main(tokens):
             draw, image, weather["pres"], weather["humi"], weather["temp"])
         display_image(epd, image, args.rotate)
     except Exception as e:
-        logging.error(f"Failed to execute main function: {e}")
+        logging.error("Failed to execute main function: %e", e)
 
 if __name__ == "__main__":
     api_tokens = get_tokens()
