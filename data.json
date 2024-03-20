@@ -12,15 +12,5 @@
     "airly": {
       "lodz_bartoka": "8173"
     }
-  },
-  "air_quality_norms": {
-    "pm25": {
-      "good": "25",
-      "medium": "50"
-    },
-    "pm10": {
-      "good": "45",
-      "medium": "90"
-    }
   }
 }
