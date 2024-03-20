@@ -1,13 +1,12 @@
 import os
 import sys
-import requests
-import pandas as pd
 import json
-from datetime import date
-from dotenv import load_dotenv
 import logging
-from PIL import Image, ImageDraw, ImageFont
 import argparse
+from datetime import date
+import requests
+from dotenv import load_dotenv
+from PIL import Image, ImageDraw, ImageFont
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -25,33 +24,36 @@ from waveshare_epd import epd2in13_V4
 # Load .env variables
 try:
     load_dotenv(dotenvdir)
-except Exception as e:
-    logging.error(f"Failed to load: {e}")
+except Exception as exception:
+    logging.error("Failed to load: %e", exception)
 
 # Constants
 FONT_SIZE = 24
 
 def input_arguments():
-    parser = argparse.ArgumentParser(description="Get weather conditions.")
+    parser = argparse.ArgumentParser(
+        description="Get weather conditions.", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument(
         "--datafile", default="data.json", type=str,
-        help="Path to file with JSON formatted data."
+        help=("Path to file with JSON formatted data.")
     )
     parser.add_argument(
         "--rotate", action="store_true",
-        help="Rotates image by 180 degrees when provided."
+        help=("Rotates image by 180 degrees when provided.")
     )
     parser.add_argument(
         "--city", default="lodz", type=str,
-        help="City to check weather conditions. The city should be available in datafile under geographic_locations."
+        help=("City to check weather conditions.\n"
+              "The city should be available in datafile under geographic_locations.")
     )
     parser.add_argument(
         "--location", default="lodz_bartoka", type=str,
-        help="Location ID for the chosen station. The location should be available in datafile under stations/<api_provider>."
+        help=("Location ID for the chosen station.\n"
+            "The location should be available in datafile under stations/<api_provider>.")
     )
     parser.add_argument(
         "--source", default="airly", type=str, choices=["airly"],
-        help="Choose source for weather data. Available choices are: airly."
+        help=("Choose source for weather data. Available choices are: airly.")
     )
     return parser.parse_args()
 
@@ -61,10 +63,10 @@ def load_api_data(url, headers=None):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to fetch data from {url}: {e}")
+        logging.error("Failed to fetch data from %u: %e", url, e)
         return None
     except json.JSONDecodeError as e:
-        logging.error(f"Failed to decode JSON response from {url}: {e}")
+        logging.error("Failed to decode JSON response from %u: %e", url, e)
         return None
 
 def get_weather_conditions(provider, city, geo_location, location_id, token):
@@ -86,7 +88,7 @@ def get_weather_conditions(provider, city, geo_location, location_id, token):
         data = load_api_data(url, headers)
         return data
     except Exception as e:
-        logging.error(f"Failed to load {provider} weather conditions: {e}")
+        logging.error("Failed to load %s weather conditions: %e", provider, e)
         return None
 
 def init_display():
@@ -107,7 +109,7 @@ def draw_text(image_draw, x, y, text, size=FONT_SIZE):
             font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size)
         )
     except Exception as e:
-        logging.error(f"Failed to draw text: {e}")
+        logging.error("Failed to draw text: %e", e)
 
 def draw_image(canvas, x, y, filename, rotation=None):
     try:
@@ -116,7 +118,7 @@ def draw_image(canvas, x, y, filename, rotation=None):
             this_image = this_image.rotate(rotation)
         canvas.paste(this_image, (x, y))
     except Exception as e:
-        logging.error(f"Failed to draw image: {e}")
+        logging.error("Failed to draw image: %e", e)
 
 def fill_empty_space(canvas, x, y):
     draw_image(canvas, x, y, "sun.bmp")
@@ -127,12 +129,11 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
     try:
         if quality_level <= norm_good:
             return "emote_smile.bmp"
-        elif norm_good < quality_level <= norm_medium:
+        if norm_good < quality_level <= norm_medium:
             return "emote_meh.bmp"
-        else:
-            return "emote_bad_air.bmp"
+        return "emote_bad_air.bmp"
     except Exception as e:
-        logging.error(f"Failed to determine air quality emote: {e}")
+        logging.error("Failed to determine air quality emote: %e", e)
         return None
 
 def draw_intersecting_lines(draw):
@@ -182,13 +183,13 @@ def draw_conditions(draw, image, pressure=None, humidity=None, temperature=None)
 
     return draw, image
 
-def display_image(epd, draw, image, rotate):
+def display_image(epd, image, rotate):
     try:
         if rotate:
             image = image.rotate(180)
         epd.displayPartBaseImage(epd.getbuffer(image))
     except Exception as e:
-        logging.error(f"Failed to draw: {e}")
+        logging.error("Failed to draw: %e", e)
     finally:
         logging.info("Powering off the screen")
         epd.sleep()
@@ -199,7 +200,7 @@ def get_tokens():
             "airly": os.environ.get("AIRLY_TOKEN")
         }
     except Exception as e:
-        logging.error(f"Failed to set constants: {e}")
+        logging.error("Failed to set constants: %e", e)
         return None
 
 def parse_airly_data(data):
@@ -208,11 +209,11 @@ def parse_airly_data(data):
     data_norms = data["current"]["standards"]
     values["pm25"] = next((v["value"] for v in data_values if v["name"] == "PM25"), None)
     values["pm10"] = next((v["value"] for v in data_values if v["name"] == "PM10"), None)
-    values["pressure"] = next((v["value"] for v in data_values if v["name"] == "PRESSURE"), None)
-    values["humidity"] = next((v["value"] for v in data_values if v["name"] == "HUMIDITY"), None)
-    values["temperature"] = next((v["value"] for v in data_values if v["name"] == "TEMPERATURE"), None)
-    values["pm25_norm"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM25"), None)
-    values["pm10_norm"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM10"), None)
+    values["pres"] = next((v["value"] for v in data_values if v["name"] == "PRESSURE"), None)
+    values["humi"] = next((v["value"] for v in data_values if v["name"] == "HUMIDITY"), None)
+    values["temp"] = next((v["value"] for v in data_values if v["name"] == "TEMPERATURE"), None)
+    values["pm25_n"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM25"), None)
+    values["pm10_n"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM10"), None)
     return values
 
 def main(tokens):
@@ -222,21 +223,25 @@ def main(tokens):
             data = json.load(f)
         geo_locs = data["geographic_locations"]
         stations = data["stations"]
-        air_norms = data["air_quality_norms"]
         if args.source == "airly":
+            station = stations["airly"][args.location]
+            token = tokens[args.source]
             weather_data = get_weather_conditions(
-                args.source, args.city, geo_locs, stations["airly"][args.location], tokens[args.source]
+                args.source, args.city, geo_locs, station, token
             )
             weather = parse_airly_data(weather_data)
         epd, image, draw = init_display()
         draw = draw_intersecting_lines(draw)
         image = draw_corners(image)
-        draw, image = draw_norms(draw, image, weather["pm25"], weather["pm10"], weather["pm25_norm"], weather["pm10_norm"])
-        draw, image = draw_conditions(draw, image, weather["pressure"], weather["humidity"], weather["temperature"])
-        display_image(epd, draw, image, args.rotate)
+        draw, image = draw_norms(
+            draw, image, weather["pm25"], weather["pm10"],
+            weather["pm25_n"], weather["pm10_n"])
+        draw, image = draw_conditions(
+            draw, image, weather["pres"], weather["humi"], weather["temp"])
+        display_image(epd, image, args.rotate)
     except Exception as e:
-        logging.error(f"Failed to execute main function: {e}")
+        logging.error("Failed to execute main function: %e", e)
 
 if __name__ == "__main__":
-    tokens = get_tokens()
-    main(tokens)
+    api_tokens = get_tokens()
+    main(api_tokens)

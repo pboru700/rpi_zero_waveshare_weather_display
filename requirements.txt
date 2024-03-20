@@ -1,5 +1,4 @@
 requests
-pandas
 python-dotenv
 pillow
 gpiozero
