@@ -12,9 +12,10 @@ import argparse
 logging.basicConfig(level=logging.DEBUG)
 
 # Directories
-picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "pic")
-libdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "lib")
-dotenvdir = os.path.join(os.path.dirname(__file__), ".env")
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+picdir: str = os.path.join(BASE_DIR, "pic")
+libdir: str = os.path.join(BASE_DIR, "lib")
+dotenvdir: str = os.path.join(BASE_DIR, ".env")
 
 if os.path.exists(libdir):
     sys.path.append(libdir)
@@ -25,7 +26,7 @@ from waveshare_epd import epd2in13_V4
 try:
     load_dotenv(dotenvdir)
 except Exception as e:
-    logging.error(f"Failed to load : {e}")
+    logging.error(f"Failed to load: {e}")
 
 # Constants
 FONT_SIZE = 24
@@ -34,23 +35,23 @@ def input_arguments():
     parser = argparse.ArgumentParser(description="Get weather conditions.")
     parser.add_argument(
         "--datafile", default="data.json", type=str,
-        help="Path to file with json formatted data."
+        help="Path to file with JSON formatted data."
     )
     parser.add_argument(
         "--rotate", action="store_true",
-        help="Rotates image by 180 degrees when provided"
+        help="Rotates image by 180 degrees when provided."
     )
     parser.add_argument(
         "--city", default="lodz", type=str,
-        help="City to check weather conditions, city should be available in datafile under geographic_locations"
+        help="City to check weather conditions. The city should be available in datafile under geographic_locations."
     )
     parser.add_argument(
         "--location", default="lodz_bartoka", type=str,
-        help="Location ID for chosen station, location should be available in datafile under stations/<api_provider>"
+        help="Location ID for the chosen station. The location should be available in datafile under stations/<api_provider>."
     )
     parser.add_argument(
         "--source", default="airly", type=str, choices=["airly"],
-        help="Chose source for weather data, available choices are: airly"
+        help="Choose source for weather data. Available choices are: airly."
     )
     return parser.parse_args()
 
@@ -69,11 +70,11 @@ def load_api_data(url, headers=None):
 def get_weather_conditions(provider, city, geo_location, location_id, token):
     base_urls = {
         "airly": "https://airapi.airly.eu/v2/measurements/"
-        # "aqicn": "https://api.waqi.info/feed/"
     }
+    lat = geo_location[city]['latitude']
+    lon = geo_location[city]['longitude']
     urls = {
-        "airly": f"point?lat={geo_location[city]['latitude']}&lng={geo_location[city]['longitude']}&locationId={location_id}",
-        # "aqicn": f"{location_id}/?token={token}"
+        "airly": f"point?lat={lat}&lng={lon}&locationId={location_id}"
     }
     use_headers = {
         "airly": True
@@ -88,6 +89,17 @@ def get_weather_conditions(provider, city, geo_location, location_id, token):
         logging.error(f"Failed to load {provider} weather conditions: {e}")
         return None
 
+def init_display():
+    logging.info("Initializing")
+    epd = epd2in13_V4.EPD()
+    epd.init()
+    epd.Clear(0xFF)
+
+    logging.info("Drawing on the image")
+    image = Image.new("1", (epd.height, epd.width), 255)
+    draw = ImageDraw.Draw(image)
+    return epd, image, draw
+
 def draw_text(image_draw, x, y, text, size=FONT_SIZE):
     try:
         image_draw.text(
@@ -101,7 +113,7 @@ def draw_image(canvas, x, y, filename, rotation=None):
     try:
         this_image = Image.open(os.path.join(picdir, filename))
         if rotation:
-            this_image.rotate(rotation)
+            this_image = this_image.rotate(rotation)
         canvas.paste(this_image, (x, y))
     except Exception as e:
         logging.error(f"Failed to draw image: {e}")
@@ -123,61 +135,57 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
         logging.error(f"Failed to determine air quality emote: {e}")
         return None
 
-def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure=None, humidity=None, temperature=None, rotate=False):
+def draw_intersecting_lines(draw):
+    draw.line([(0, 59), (250, 59)], fill=0, width=4)
+    draw.line([(124, 0), (124, 122)], fill=0, width=4)
+    return draw
+
+def draw_corners(image):
+    draw_image(image, 0, 0, "corner.bmp")
+    draw_image(image, 248, 0, "corner.bmp", 270)
+    draw_image(image, 0, 119, "corner.bmp", 90)
+    draw_image(image, 248, 119, "corner.bmp", 180)
+    return image
+
+def draw_norms(draw, image, pm25, pm10, pm25_norm, pm10_norm):
+    # Draw PM2.5 norm, upper left
+    draw_image(image, 28, 4, "pm25_icon.bmp")
+    draw_image(image, 66, 4, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
+    draw_text(draw, 6, 33, f"{pm25}/{pm25_norm}")
+
+    # Draw PM10 norm, lower left
+    draw_image(image, 28, 66, "pm10_icon.bmp")
+    draw_image(image, 66, 66, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
+    draw_text(draw, 6, 96, f"{pm10}/{pm10_norm}")
+    return draw, image
+
+def draw_conditions(draw, image, pressure=None, humidity=None, temperature=None):
+    # Draw Weather icons, upper right
+    fill_empty_space(image, 134, 6)
+
+    # Draw temperature, humidity, and pressure
+    if temperature:
+        draw_text(draw, 156, 28, f"{temperature}°C")
+        draw_image(image, 132, 26, "termometer.bmp")
+    else:
+        fill_empty_space(image, 134, 26)
+    if humidity:
+        draw_text(draw, 156, 66, f"{humidity}%")
+        draw_image(image, 132, 68, "water_droplet.bmp")
+    else:
+        fill_empty_space(image, 132, 68)
+    if pressure:
+        draw_text(draw, 146, 96, f"{pressure}hPa", 20)
+        draw_image(image, 128, 99, "pressure.bmp")
+    else:
+        draw_text(draw, 129, 30, date.today().strftime("%d-%m-%Y"))
+
+    return draw, image
+
+def display_image(epd, draw, image, rotate):
     try:
-        logging.info("Initializing")
-        epd = epd2in13_V4.EPD()
-        epd.init()
-        epd.Clear(0xFF)
-
-        logging.info("Drawing on the image")
-        image = Image.new("1", (epd.height, epd.width), 255)
-        draw = ImageDraw.Draw(image)
-
-        # Draw intersecting lines
-        draw.line([(0, 59), (250, 59)], fill=0, width=4)
-        draw.line([(124, 0), (124, 122)], fill=0, width=4)
-
-        # Draw PM2.5 norm, upper left
-        draw_image(image, 28, 4, "pm25_icon.bmp")
-        draw_image(image, 66, 4, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
-        draw_text(draw, 6, 33, f"{pm25}/{pm25_norm}")
-
-        # Draw PM10 norm, lower left
-        draw_image(image, 28, 66, "pm10_icon.bmp")
-        draw_image(image, 66, 66, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
-        draw_text(draw, 6, 96, f"{pm10}/{pm10_norm}")
-
-        # Draw Weather icons, upper right
-        fill_empty_space(image, 134, 6)
-
-        # Draw temperature, himidity and pressure
-        if temperature:
-            draw_text(draw, 156, 28, f"{temperature}°C")
-            draw_image(image, 132, 26, "termometer.bmp")
-        else:
-            fill_empty_space(image, 134, 26)
-        if humidity:
-            draw_text(draw, 156, 66, f"{humidity}%")
-            draw_image(image, 132, 68, "water_droplet.bmp")
-        else:
-            fill_empty_space(image, 132, 68)
-        if pressure:
-            draw_text(draw, 146, 96, f"{pressure}hPa", 20)
-            draw_image(image, 128, 99, "pressure.bmp")
-        else:
-            draw_text(draw, 129, 30, date.today().strftime("%d-%m-%Y"))
-
-        # Draw corners
-        draw_image(image, 0, 0, "corner.bmp")
-        draw_image(image, 247, 0, "corner.bmp", 270)
-        draw_image(image, 0, 119, "corner.bmp", 90)
-        draw_image(image, 247, 119, "corner.bmp", 180)
-
         if rotate:
             image = image.rotate(180)
-
-        # Display image
         epd.displayPartBaseImage(epd.getbuffer(image))
     except Exception as e:
         logging.error(f"Failed to draw: {e}")
@@ -185,15 +193,29 @@ def draw_conditions(pm25, pm10, pm25_norm, pm10_norm, pressure=None, humidity=No
         logging.info("Powering off the screen")
         epd.sleep()
 
-if __name__ == "__main__":
+def get_tokens():
     try:
-        tokens = {
+        return {
             "airly": os.environ.get("AIRLY_TOKEN")
-            # "aqicn": os.environ.get("AQICN_TOKEN")
         }
     except Exception as e:
         logging.error(f"Failed to set constants: {e}")
+        return None
 
+def parse_airly_data(data):
+    values = {}
+    data_values = data["current"]["values"]
+    data_norms = data["current"]["standards"]
+    values["pm25"] = next((v["value"] for v in data_values if v["name"] == "PM25"), None)
+    values["pm10"] = next((v["value"] for v in data_values if v["name"] == "PM10"), None)
+    values["pressure"] = next((v["value"] for v in data_values if v["name"] == "PRESSURE"), None)
+    values["humidity"] = next((v["value"] for v in data_values if v["name"] == "HUMIDITY"), None)
+    values["temperature"] = next((v["value"] for v in data_values if v["name"] == "TEMPERATURE"), None)
+    values["pm25_norm"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM25"), None)
+    values["pm10_norm"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM10"), None)
+    return values
+
+def main(tokens):
     try:
         args = input_arguments()
         with open(args.datafile) as f:
@@ -206,18 +228,16 @@ if __name__ == "__main__":
         )
         if weather_data:
             if args.source == "airly":
-                values = weather_data["current"]["values"]
-                norms = weather_data["current"]["standards"]
-                pm25 = [ v["value"] for v in values if v["name"] == "PM25" ][0]
-                pm10 = [ v["value"] for v in values if v["name"] == "PM10" ][0]
-                pressure = [ v["value"] for v in values if v["name"] == "PRESSURE" ][0]
-                humidity = [ v["value"] for v in values if v["name"] == "HUMIDITY" ][0]
-                temperature = [ v["value"] for v in values if v["name"] == "TEMPERATURE" ][0]
-                pm25_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM25" ][0]
-                pm10_norm = [ n["limit"] for n in norms if n["pollutant"] == "PM10" ][0]
-            draw_conditions(
-                pm25, pm10, pm25_norm, pm10_norm,
-                pressure, humidity, temperature, args.rotate
-            )
+                weather = parse_airly_data(weather_data)
+            epd, image, draw = init_display()
+            draw = draw_intersecting_lines(draw)
+            image = draw_corners(image)
+            draw, image = draw_norms(draw, image, weather["pm25"], weather["pm10"], weather["pm25_norm"], weather["pm10_norm"])
+            draw, image = draw_conditions(draw, image, weather["pressure"], weather["humidity"], weather["temperature"])
+            display_image(epd, draw, image, args.rotate)
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
+
+if __name__ == "__main__":
+    tokens = get_tokens()
+    main(tokens)
