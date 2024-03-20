@@ -223,18 +223,17 @@ def main(tokens):
         geo_locs = data["geographic_locations"]
         stations = data["stations"]
         air_norms = data["air_quality_norms"]
-        weather_data = get_weather_conditions(
-            args.source, args.city, geo_locs, stations["airly"][args.location], tokens[args.source]
-        )
-        if weather_data:
-            if args.source == "airly":
-                weather = parse_airly_data(weather_data)
-            epd, image, draw = init_display()
-            draw = draw_intersecting_lines(draw)
-            image = draw_corners(image)
-            draw, image = draw_norms(draw, image, weather["pm25"], weather["pm10"], weather["pm25_norm"], weather["pm10_norm"])
-            draw, image = draw_conditions(draw, image, weather["pressure"], weather["humidity"], weather["temperature"])
-            display_image(epd, draw, image, args.rotate)
+        if args.source == "airly":
+            weather_data = get_weather_conditions(
+                args.source, args.city, geo_locs, stations["airly"][args.location], tokens[args.source]
+            )
+            weather = parse_airly_data(weather_data)
+        epd, image, draw = init_display()
+        draw = draw_intersecting_lines(draw)
+        image = draw_corners(image)
+        draw, image = draw_norms(draw, image, weather["pm25"], weather["pm10"], weather["pm25_norm"], weather["pm10_norm"])
+        draw, image = draw_conditions(draw, image, weather["pressure"], weather["humidity"], weather["temperature"])
+        display_image(epd, draw, image, args.rotate)
     except Exception as e:
         logging.error(f"Failed to execute main function: {e}")
 
