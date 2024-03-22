@@ -154,10 +154,13 @@ def draw_corners(canvas, res_x, res_y, square_image_width = 3):
     return canvas
 
 def draw_norms(draw, image, data):
-    pm25 = data["pm25"]
-    pm10 = data["pm10"]
-    pm25_norm = data["pm25_norm"]
-    pm10_norm = data["pm10_norm"]
+    try:
+        pm25 = data["pm25"]
+        pm10 = data["pm10"]
+        pm25_norm = data["pm25_norm"]
+        pm10_norm = data["pm10_norm"]
+    except Exception as e:
+        logging.error("Failed to determine weather norms: %e", e)
     # Draw PM2.5 norm, upper left
     draw_image(image, 28, 4, "pm25_icon.bmp")
     draw_image(image, 66, 4, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
