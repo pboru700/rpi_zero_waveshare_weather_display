@@ -136,19 +136,28 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
         logging.error("Failed to determine air quality emote: %e", e)
         return None
 
-def draw_intersecting_lines(draw):
-    draw.line([(0, 59), (250, 59)], fill=0, width=4)
-    draw.line([(124, 0), (124, 122)], fill=0, width=4)
-    return draw
+def draw_intersecting_lines(canvas, res_x, res_y, width = 4):
+    shift = width/2
+    mid_x = res_x/2
+    mid_y = res_y/2
+    shifted_x = mid_x - shift
+    shifted_y = mid_y - shift
+    canvas.line([(1, shifted_y), (res_x, shifted_y)], fill=0, width=width)
+    canvas.line([(shifted_x, 1), (shifted_x, res_y)], fill=0, width=width)
+    return canvas
 
-def draw_corners(image):
-    draw_image(image, 0, 0, "corner.bmp")
-    draw_image(image, 248, 0, "corner.bmp", 270)
-    draw_image(image, 0, 119, "corner.bmp", 90)
-    draw_image(image, 248, 119, "corner.bmp", 180)
-    return image
+def draw_corners(canvas, res_x, res_y, square_image_width = 3):
+    draw_image(canvas, 0, 0, "corner.bmp")
+    draw_image(canvas, res_x - square_image_width, 0, "corner.bmp", 270)
+    draw_image(canvas, 0, res_y - square_image_width, "corner.bmp", 90)
+    draw_image(canvas, res_x - square_image_width, res_y - square_image_width, "corner.bmp", 180)
+    return canvas
 
-def draw_norms(draw, image, pm25, pm10, pm25_norm, pm10_norm):
+def draw_norms(draw, image, data):
+    pm25 = data["pm25"]
+    pm10 = data["pm10"]
+    pm25_norm = data["pm25_norm"]
+    pm10_norm = data["pm10_norm"]
     # Draw PM2.5 norm, upper left
     draw_image(image, 28, 4, "pm25_icon.bmp")
     draw_image(image, 66, 4, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
@@ -160,7 +169,13 @@ def draw_norms(draw, image, pm25, pm10, pm25_norm, pm10_norm):
     draw_text(draw, 6, 96, f"{pm10}/{pm10_norm}")
     return draw, image
 
-def draw_conditions(draw, image, pressure=None, humidity=None, temperature=None):
+def draw_conditions(draw, image, data):
+    try:
+        temperature = data["temp"]
+        humidity = data["humi"]
+        pressure = data["pres"]
+    except Exception as e:
+        logging.error("Failed to determine weather conditions: %e", e)
     # Draw Weather icons, upper right
     fill_empty_space(image, 134, 6)
 
@@ -212,8 +227,8 @@ def parse_airly_data(data):
     values["pres"] = next((v["value"] for v in data_values if v["name"] == "PRESSURE"), None)
     values["humi"] = next((v["value"] for v in data_values if v["name"] == "HUMIDITY"), None)
     values["temp"] = next((v["value"] for v in data_values if v["name"] == "TEMPERATURE"), None)
-    values["pm25_n"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM25"), None)
-    values["pm10_n"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM10"), None)
+    values["pm25_norm"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM25"), None)
+    values["pm10_norm"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM10"), None)
     return values
 
 def main(tokens):
@@ -231,13 +246,10 @@ def main(tokens):
             )
             weather = parse_airly_data(weather_data)
         epd, image, draw = init_display()
-        draw = draw_intersecting_lines(draw)
-        image = draw_corners(image)
-        draw, image = draw_norms(
-            draw, image, weather["pm25"], weather["pm10"],
-            weather["pm25_n"], weather["pm10_n"])
-        draw, image = draw_conditions(
-            draw, image, weather["pres"], weather["humi"], weather["temp"])
+        draw = draw_intersecting_lines(draw, epd.height, epd.width, 4)
+        image = draw_corners(image, epd.height, epd.width, 3)
+        draw, image = draw_norms(draw, image, weather)
+        draw, image = draw_conditions(draw, image, weather)
         display_image(epd, image, args.rotate)
     except Exception as e:
         logging.error("Failed to execute main function: %e", e)
