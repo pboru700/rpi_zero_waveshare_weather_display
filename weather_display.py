@@ -3,7 +3,6 @@ import sys
 import json
 import logging
 import argparse
-from datetime import date
 import requests
 from dotenv import load_dotenv
 from PIL import Image, ImageDraw, ImageFont
@@ -102,28 +101,28 @@ def init_display():
     draw = ImageDraw.Draw(image)
     return epd, image, draw
 
-def draw_text(image_draw, x, y, text, size=FONT_SIZE):
+def draw_text(image_draw, res_h, res_w, text, size=FONT_SIZE):
     try:
         image_draw.text(
-            (x, y), text, fill=0,
+            (res_h, res_w), text, fill=0,
             font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size)
         )
     except Exception as e:
         logging.error("Failed to draw text: %e", e)
 
-def draw_image(canvas, x, y, filename, rotation=None):
+def draw_image(image_canvas, res_h, res_w, filename, rotation=None):
     try:
         this_image = Image.open(os.path.join(picdir, filename))
         if rotation:
             this_image = this_image.rotate(rotation)
-        canvas.paste(this_image, (x, y))
+        image_canvas.paste(this_image, (res_h, res_w))
     except Exception as e:
         logging.error("Failed to draw image: %e", e)
 
-def fill_empty_space(canvas, x, y):
-    draw_image(canvas, x, y, "sun.bmp")
-    draw_image(canvas, x + 36, y + 2, "clouds_advanced_01.bmp")
-    draw_image(canvas, x + 76, y + 4, "clouds_advanced_02.bmp")
+def fill_empty_space(canvas, res_h, res_w):
+    draw_image(canvas, res_h, res_w, "sun.bmp")
+    draw_image(canvas, res_h + 36, res_w + 2, "clouds_advanced_01.bmp")
+    draw_image(canvas, res_h + 76, res_w + 4, "clouds_advanced_02.bmp")
 
 def air_quality_emote(quality_level, norm_good, norm_medium):
     try:
@@ -136,24 +135,24 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
         logging.error("Failed to determine air quality emote: %e", e)
         return None
 
-def draw_intersecting_lines(canvas, res_x, res_y, width = 4):
+def draw_intersecting_lines(image_canvas, res_h, res_w, width = 4):
     shift = width/2
-    mid_x = res_x/2
-    mid_y = res_y/2
-    shifted_x = mid_x - shift
-    shifted_y = mid_y - shift
-    canvas.line([(1, shifted_y), (res_x, shifted_y)], fill=0, width=width)
-    canvas.line([(shifted_x, 1), (shifted_x, res_y)], fill=0, width=width)
-    return canvas
+    mid_h = res_h/2
+    mid_w = res_w/2
+    shifted_h = mid_h - shift
+    shifted_w = mid_w - shift
+    image_canvas.line([(1, shifted_w), (res_h, shifted_w)], fill=0, width=width)
+    image_canvas.line([(shifted_h, 1), (shifted_h, res_w)], fill=0, width=width)
+    return image_canvas
 
-def draw_corners(canvas, res_x, res_y, square_image_width = 3):
-    draw_image(canvas, 0, 0, "corner.bmp")
-    draw_image(canvas, res_x - square_image_width, 0, "corner.bmp", 270)
-    draw_image(canvas, 0, res_y - square_image_width, "corner.bmp", 90)
-    draw_image(canvas, res_x - square_image_width, res_y - square_image_width, "corner.bmp", 180)
-    return canvas
+def draw_corners(image_canvas, res_h, res_w, square_image_width = 3):
+    draw_image(image_canvas, 0, 0, "corner.bmp")
+    draw_image(image_canvas, res_h - square_image_width, 0, "corner.bmp", 270)
+    draw_image(image_canvas, 0, res_w - square_image_width, "corner.bmp", 90)
+    draw_image(image_canvas, res_h - square_image_width, res_w - square_image_width, "corner.bmp", 180)
+    return image_canvas
 
-def draw_norms(draw, image, data):
+def draw_norms(text_canvas, res_h, res_w, image_canvas, data):
     try:
         pm25 = data["pm25"]
         pm10 = data["pm10"]
@@ -162,50 +161,45 @@ def draw_norms(draw, image, data):
     except Exception as e:
         logging.error("Failed to determine weather norms: %e", e)
     # Draw PM2.5 norm, upper left
-    draw_image(image, 28, 4, "pm25_icon.bmp")
-    draw_image(image, 66, 4, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
-    draw_text(draw, 6, 33, f"{pm25}/{pm25_norm}")
+    draw_image(image_canvas, res_h + 22, res_w, "pm25_icon.bmp")
+    draw_image(image_canvas, res_h + 62, res_w, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
+    draw_text(text_canvas, res_h + 4, res_w + 29, f"{pm25}/{pm25_norm}")
 
     # Draw PM10 norm, lower left
-    draw_image(image, 28, 66, "pm10_icon.bmp")
-    draw_image(image, 66, 66, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
-    draw_text(draw, 6, 96, f"{pm10}/{pm10_norm}")
-    return draw, image
+    draw_image(image_canvas, res_h + 22, res_w + 62, "pm10_icon.bmp")
+    draw_image(image_canvas, res_h + 62, res_w + 62, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
+    draw_text(text_canvas, res_h + 4, res_w + 92, f"{pm10}/{pm10_norm}")
+    return text_canvas, image_canvas
 
-def draw_conditions(draw, image, data):
+def draw_single_condition(param, unit, image_canvas, text_canvas, res_h, res_w, param_filename, font = FONT_SIZE):
+    if param:
+        draw_text(text_canvas, res_h + 20, res_w, f"{param}{unit}", font)
+        draw_image(image_canvas, res_h + 2, res_w + 2, param_filename)
+    else:
+        fill_empty_space(image_canvas, res_h, res_w)
+
+def draw_conditions(text_canvas, image_canvas, data):
     try:
         temperature = data["temp"]
         humidity = data["humi"]
         pressure = data["pres"]
     except Exception as e:
         logging.error("Failed to determine weather conditions: %e", e)
+
     # Draw Weather icons, upper right
-    fill_empty_space(image, 134, 6)
+    fill_empty_space(image_canvas, 134, 6)
 
-    # Draw temperature, humidity, and pressure
-    if temperature:
-        draw_text(draw, 156, 28, f"{temperature}°C")
-        draw_image(image, 132, 26, "termometer.bmp")
-    else:
-        fill_empty_space(image, 134, 26)
-    if humidity:
-        draw_text(draw, 156, 66, f"{humidity}%")
-        draw_image(image, 132, 68, "water_droplet.bmp")
-    else:
-        fill_empty_space(image, 132, 68)
-    if pressure:
-        draw_text(draw, 146, 96, f"{pressure}hPa", 20)
-        draw_image(image, 128, 99, "pressure.bmp")
-    else:
-        draw_text(draw, 129, 30, date.today().strftime("%d-%m-%Y"))
+    draw_single_condition(temperature, "°C", image_canvas, text_canvas, 132, 24, "termometer.bmp")
+    draw_single_condition(humidity, "%", image_canvas, text_canvas, 130, 64, "water_droplet.bmp")
+    draw_single_condition(pressure, "hPa", image_canvas, text_canvas, 126, 94, "pressure.bmp", font = 20)
 
-    return draw, image
+    return text_canvas, image_canvas
 
-def display_image(epd, image, rotate):
+def display_image(epd, image_canvas, rotate):
     try:
         if rotate:
-            image = image.rotate(180)
-        epd.displayPartBaseImage(epd.getbuffer(image))
+            image_canvas = image_canvas.rotate(180)
+        epd.displayPartBaseImage(epd.getbuffer(image_canvas))
     except Exception as e:
         logging.error("Failed to draw: %e", e)
     finally:
@@ -251,7 +245,7 @@ def main(tokens):
         epd, image, draw = init_display()
         draw = draw_intersecting_lines(draw, epd.height, epd.width, 4)
         image = draw_corners(image, epd.height, epd.width, 3)
-        draw, image = draw_norms(draw, image, weather)
+        draw, image = draw_norms(draw, 6, 4, image, weather)
         draw, image = draw_conditions(draw, image, weather)
         display_image(epd, image, args.rotate)
     except Exception as e:
