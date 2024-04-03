@@ -1,4 +1,5 @@
-requests
-python-dotenv
-pillow
+geopy
 gpiozero
+pillow
+python-dotenv
+requests
