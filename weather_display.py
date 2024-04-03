@@ -206,11 +206,9 @@ def display_image(epd, image_canvas, rotate):
         logging.info("Powering off the screen")
         epd.sleep()
 
-def get_tokens():
+def get_token(source):
     try:
-        return {
-            "airly": os.environ.get("AIRLY_TOKEN")
-        }
+        return os.environ.get(source.upper())
     except Exception as e:
         logging.error("Failed to set constants: %e", e)
         return None
@@ -228,16 +226,16 @@ def parse_airly_data(data):
     values["pm10_norm"] = next((n["limit"] for n in data_norms if n["pollutant"] == "PM10"), None)
     return values
 
-def main(tokens):
+def main():
     try:
         args = input_arguments()
+        token = get_token(args.source)
         with open(args.datafile) as f:
             data = json.load(f)
         geo_locs = data["geographic_locations"]
         stations = data["stations"]
+        station = stations[args.source][args.location]
         if args.source == "airly":
-            station = stations["airly"][args.location]
-            token = tokens[args.source]
             weather_data = get_weather_conditions(
                 args.source, args.city, geo_locs, station, token
             )
@@ -252,5 +250,4 @@ def main(tokens):
         logging.error("Failed to execute main function: %e", e)
 
 if __name__ == "__main__":
-    api_tokens = get_tokens()
-    main(api_tokens)
+    main()
