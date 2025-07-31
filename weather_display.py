@@ -27,7 +27,7 @@ except Exception as exception:
     logging.error("Failed to load: %e", exception)
 
 # Constants
-FONT_SIZE = 24
+FONT_SIZE = 20
 
 def input_arguments():
     parser = argparse.ArgumentParser(
@@ -101,28 +101,45 @@ def init_display():
     draw = ImageDraw.Draw(image)
     return epd, image, draw
 
-def draw_text(image_draw, res_h, res_w, text, size=FONT_SIZE):
-    try:
-        image_draw.text(
-            (res_h, res_w), text, fill=0,
-            font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size)
-        )
-    except Exception as e:
-        logging.error("Failed to draw text: %e", e)
+# def draw_text(image_draw, res_x, res_y, text, angle, size=FONT_SIZE):
+#     try:
+#         image_draw.text(
+#             (res_x, res_y), text, fill=0,
+#             font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), size)
+#         )
+#     except Exception as e:
+#         logging.error("Failed to draw text: %e", e)
 
-def draw_image(image_canvas, res_h, res_w, filename, rotation=None):
+def draw_text(image_canvas, res_x, res_y, text, angle=90, fill=0, bg_colour=255, padding=10):
+    font=ImageFont.truetype(os.path.join(picdir, "Font.ttc"), FONT_SIZE)
+
+    dummy_img = Image.new("RGB", (1, 1))
+    dummy_draw = ImageDraw.Draw(dummy_img)
+    text_width, text_height = dummy_draw.textsize(text, font=font, fill=fill)
+
+    img_width = text_width + 2 * padding
+    img_height = text_height + 2 * padding
+    text_canvas = Image.new("RGB", (img_width, img_height), bg_colour)
+    draw = ImageDraw.Draw(text_canvas)
+
+    draw.text((padding, padding), text, font=font, fill=fill)
+
+    rotated = text_canvas.rotate(angle, expand=True)
+    image_canvas.paste(rotated, (res_x, res_y))
+
+def draw_image(image_canvas, res_x, res_y, filename, rotation=90):
     try:
         this_image = Image.open(os.path.join(picdir, filename))
         if rotation:
             this_image = this_image.rotate(rotation)
-        image_canvas.paste(this_image, (res_h, res_w))
+        image_canvas.paste(this_image, (res_x, res_y))
     except Exception as e:
         logging.error("Failed to draw image: %e", e)
 
-def fill_empty_space(canvas, res_h, res_w):
-    draw_image(canvas, res_h, res_w, "sun.bmp")
-    draw_image(canvas, res_h + 36, res_w + 2, "clouds_advanced_01.bmp")
-    draw_image(canvas, res_h + 76, res_w + 4, "clouds_advanced_02.bmp")
+def fill_empty_space(canvas, res_x, res_y):
+    draw_image(canvas, res_x, res_y, "sun.bmp")
+    draw_image(canvas, res_x + 36, res_y + 2, "clouds_advanced_01.bmp")
+    draw_image(canvas, res_x + 76, res_y + 4, "clouds_advanced_02.bmp")
 
 def air_quality_emote(quality_level, norm_good, norm_medium):
     try:
@@ -135,24 +152,27 @@ def air_quality_emote(quality_level, norm_good, norm_medium):
         logging.error("Failed to determine air quality emote: %e", e)
         return None
 
-def draw_intersecting_lines(image_canvas, res_h, res_w, width = 4):
+def draw_intersecting_lines(image_canvas, res_x, res_y, width = 4):
+    top = res_x*3/4
+    middle = res_x/2
+    bottom = res_x/4
     shift = width/2
-    mid_h = res_h/2
-    mid_w = res_w/2
-    shifted_h = mid_h - shift
-    shifted_w = mid_w - shift
-    image_canvas.line([(1, shifted_w), (res_h, shifted_w)], fill=0, width=width)
-    image_canvas.line([(shifted_h, 1), (shifted_h, res_w)], fill=0, width=width)
+    shifted_top = top - shift
+    shifted_middle = middle - shift
+    shifted_bottom = bottom - shift
+    image_canvas.line([(shifted_top, - 5), (shifted_top, res_y )], fill=0, width=width)
+    image_canvas.line([(shifted_middle, - 5), (shifted_middle, res_y)], fill=0, width=width)
+    image_canvas.line([(shifted_bottom,  - 5), (shifted_bottom, res_y)], fill=0, width=width)
     return image_canvas
 
-def draw_corners(image_canvas, res_h, res_w, square_image_width = 3):
+def draw_corners(image_canvas, res_x, res_y, square_image_width = 3):
     draw_image(image_canvas, 0, 0, "corner.bmp")
-    draw_image(image_canvas, res_h - square_image_width, 0, "corner.bmp", 270)
-    draw_image(image_canvas, 0, res_w - square_image_width, "corner.bmp", 90)
-    draw_image(image_canvas, res_h - square_image_width, res_w - square_image_width, "corner.bmp", 180)
+    draw_image(image_canvas, res_x - square_image_width, 0, "corner.bmp", 270)
+    draw_image(image_canvas, 0, res_y - square_image_width, "corner.bmp", 90)
+    draw_image(image_canvas, res_x - square_image_width, res_y - square_image_width, "corner.bmp", 180)
     return image_canvas
 
-def draw_norms(text_canvas, res_h, res_w, image_canvas, data):
+def draw_norms(text_canvas, res_x, res_y, image_canvas, data):
     try:
         pm25 = data["pm25"]
         pm10 = data["pm10"]
@@ -161,22 +181,22 @@ def draw_norms(text_canvas, res_h, res_w, image_canvas, data):
     except Exception as e:
         logging.error("Failed to determine weather norms: %e", e)
     # Draw PM2.5 norm, upper left
-    draw_image(image_canvas, res_h + 22, res_w, "pm25_icon.bmp")
-    draw_image(image_canvas, res_h + 62, res_w, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
-    draw_text(text_canvas, res_h + 4, res_w + 29, f"{pm25}/{pm25_norm}")
+    draw_image(image_canvas, res_x, res_y, "pm25_icon.bmp")
+    draw_image(image_canvas, res_x, res_y + 44, air_quality_emote(pm25, pm25_norm, 2 * pm25_norm))
+    draw_text(image_canvas, res_x + 26, res_y + 20, f"{pm25}/{pm25_norm}")
 
     # Draw PM10 norm, lower left
-    draw_image(image_canvas, res_h + 22, res_w + 62, "pm10_icon.bmp")
-    draw_image(image_canvas, res_h + 62, res_w + 62, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
-    draw_text(text_canvas, res_h + 4, res_w + 92, f"{pm10}/{pm10_norm}")
+    draw_image(image_canvas, res_x + 62, res_y, "pm10_icon.bmp")
+    draw_image(image_canvas, res_x + 62, res_y + 44, air_quality_emote(pm10, pm10_norm, 2 * pm10_norm))
+    draw_text(image_canvas, res_x + 88, res_y + 20, f"{pm10}/{pm10_norm}")
     return text_canvas, image_canvas
 
-def draw_single_condition(param, unit, image_canvas, text_canvas, res_h, res_w, param_filename, font = FONT_SIZE):
+def draw_single_condition(param, unit, image_canvas, text_canvas, res_x, res_y, param_filename, font = FONT_SIZE):
     if param:
-        draw_text(text_canvas, res_h + 20, res_w, f"{param}{unit}", font)
-        draw_image(image_canvas, res_h + 2, res_w + 2, param_filename)
+        draw_text(text_canvas, res_x + 20, res_y, f"{param}{unit}", font)
+        draw_image(image_canvas, res_x + 2, res_y + 2, param_filename)
     else:
-        fill_empty_space(image_canvas, res_h, res_w)
+        fill_empty_space(image_canvas, res_x, res_y)
 
 def draw_conditions(text_canvas, image_canvas, data):
     try:
@@ -195,10 +215,10 @@ def draw_conditions(text_canvas, image_canvas, data):
 
     return text_canvas, image_canvas
 
-def display_image(epd, image_canvas, rotate):
+def display_image(epd, image_canvas, rotate, rotation = 0):
     try:
         if rotate:
-            image_canvas = image_canvas.rotate(180)
+            image_canvas = image_canvas.rotate(rotation)
         epd.displayPartBaseImage(epd.getbuffer(image_canvas))
     except Exception as e:
         logging.error("Failed to draw: %e", e)
@@ -241,10 +261,13 @@ def main():
             )
             weather = parse_airly_data(weather_data)
         epd, image, draw = init_display()
-        draw = draw_intersecting_lines(draw, epd.height, epd.width, 4)
-        image = draw_corners(image, epd.height, epd.width, 3)
-        draw, image = draw_norms(draw, 6, 4, image, weather)
-        draw, image = draw_conditions(draw, image, weather)
+        height = epd.height
+        width = epd.width
+        # draw = draw_intersecting_lines(draw, height, width, 4)
+        # image = draw_corners(image, height, width, 3)
+        draw = draw_intersecting_lines(draw, height, width, 4)
+        draw, image = draw_norms(draw, 2, 26, image, weather)
+        # draw, image = draw_conditions(draw, image, weather)
         display_image(epd, image, args.rotate)
     except Exception as e:
         logging.error("Failed to execute main function: %e", e)
